@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+#
+# Snafu: Snake Functions
+
+import subprocess
+import json
+import os
+import glob
+
+functiondir = "functions-local"
+os.makedirs(functiondir, exist_ok=True)
+
+proc = subprocess.run("aws lambda list-functions", stdout=subprocess.PIPE, shell=True)
+out = proc.stdout.decode("utf-8")
+functions = json.loads(out)
+#print(functions)
+for func in functions["Functions"]:
+	funcname = func["FunctionName"]
+	print("import", funcname)
+	proc = subprocess.run("aws lambda get-function --function-name {}".format(funcname), stdout=subprocess.PIPE, shell=True)
+	out = proc.stdout.decode("utf-8")
+	function = json.loads(out)
+	funccode = function["Code"]["Location"]
+	#print(funccode)
+	funcdir = os.path.join(functiondir, funcname)
+	os.makedirs(funcdir, exist_ok=True)
+	#codefile = os.path.join(functiondir, funcname + ".py")
+	codezip = os.path.join(functiondir, funcname + ".zip")
+	#configfile = os.path.join(functiondir, funcname + ".config")
+	proc = subprocess.run("wget -q -O {} '{}'".format(codezip, funccode), shell=True)
+	proc = subprocess.run("cd {} && unzip -q ../{}".format(funcdir, os.path.basename(codezip)), shell=True)
+	#os.rename(os.path.join(functiondir, "lambda_function.py"), codefile)
+	codefiles = glob.glob(os.path.join(funcdir, "*.py"))
+	codefile = codefiles[0]
+	print("+ code: {}".format(codefile))
+	configfile = os.path.join(funcdir, os.path.basename(codefile).split(".")[0] + ".config")
+	f = open(configfile, "w")
+	json.dump(func, f)
+	print("+ configuration: {}".format(configfile))

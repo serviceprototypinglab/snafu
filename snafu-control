@@ -1,0 +1,56 @@
+#!/usr/bin/env python3
+#
+# Snafu: Snake Functions
+
+import flask
+import json
+import argparse
+import lib.snafu
+
+class SnafuControl:
+	app = flask.Flask("snafu-control")
+	snafu = None
+
+	def __init__(self):
+		pass
+
+	@app.route("/2015-03-31/functions/")
+	def listfunctions():
+		f = []
+		for function in SnafuControl.snafu.functions:
+			fmap = {"FunctionName": function, "Version": "$LATEST"}
+			f.append(fmap)
+
+		functions = {"Functions" : f}
+		return json.dumps(functions)
+
+	@app.route("/2015-03-31/functions/<function>/invocations", methods=["POST"])
+	def invoke(function):
+		dataargs = {}
+		data = flask.request.data.decode("utf-8")
+		if data:
+			dataargs["event"] = data
+
+		response = SnafuControl.snafu.execute(function, **dataargs)
+		if not response:
+			#flask.abort(500)
+			err = json.dumps({"errorMessage": "ServiceException"})
+			return err, 501
+		return response
+
+	def run(self):
+		parser = argparse.ArgumentParser(description="Snake Functions as a Service - Control Plane")
+		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
+		args = parser.parse_args()
+
+		if not args.file:
+			args.file.append("functions")
+			args.file.append("functions-local")
+
+		SnafuControl.snafu = lib.snafu.Snafu(True)
+		self.snafu.activate(args.file, "lambda")
+
+		self.app.run(host="0.0.0.0", port=10000)
+
+sc = SnafuControl()
+sc.run()

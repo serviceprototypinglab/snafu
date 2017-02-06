@@ -1,0 +1,47 @@
+Snafu: Snake Functions
+(☺) 2017 Josef Spillner <josef.spillner@zhaw.ch>
+================================================
+
+Snafu is a tiny Function-as-a-Service (FaaS) host process for Python.
+Functions are read from specified Python source files. If no directory
+is specified, 'functions' as well as 'functions-local' are scanned.
+
+The set of exported functions consists of all of them (convention name:
+any) or just one pre-defined function by default named lambda_handler
+with specific arguments, for compatibility with AWS Lambda's Python 2.7
+runtime (convention name: lambda). Functions are invoked through
+connectors, for instance HTTP requests or interactive command-line input
+or both at the same time. They correspond roughly to Lambda triggers.
+All connectors are described below.
+
+The utility script 'snafu-import' exists to slurp Lambda functions and
+configurations for execution with Snafu. Configuration support is
+limited to environment variables at the moment. Configuration files are
+read as *.config associated to *.py.
+
+Snafu is implemented in Python 3 so that any Lambda functions need to be
+passed through the 2to3 tool. It is expected that Python 3 will be added
+to Lambda in the near future, making this step then obsolete.
+
+The runtime of invoked functions is measured and recorded in a CSV file
+named 'snafu.csv' which can be further processed for statistical
+analysis.
+
+Snafu runs until interrupted with Ctrl+C.
+
+Apart from hosting the functions, Snafu can also be used as Swiss army
+knife of serverless computing. For instance:
+% echo "{}" | ./snafu -x lambda_function.lambda_handler
+
+The control plane 'snafu-control' implements essential functionality
+found in the Lambda control plane via Snafu. Use aws-cli with the option
+--endpoint-url to redirect all requests to your instance (by default, it
+runs on http://localhost:10000/).
+
+Connectors
+----------
+* cli (interactive function name choice; payload asked or read from
+  stdin)
+* web (function name chosen via URL path; payload via HTTP POST)
+* messaging (no function name choice: calls hello_world; no payload?)
+* filesystem (no function name choice: calls lambda_handler; no payload?)
