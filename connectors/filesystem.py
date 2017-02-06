@@ -5,12 +5,10 @@ gcb = None
 
 class EventHandler(pyinotify.ProcessEvent):
 	def process_IN_CREATE(self, event):
-		#print("Creating:", event.pathname)
 		ctx = {"file": event.pathname, "action": "create"}
 		gcb("lambda_handler")
 
 	def process_IN_DELETE(self, event):
-		#print("Removing:", event.pathname)
 		ctx = {"file": event.pathname, "action": "delete"}
 		gcb("lambda_handler")
 

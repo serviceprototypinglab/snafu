@@ -100,12 +100,6 @@ class Snafu:
 				print("+ connector:", connector)
 
 		connectormods = []
-		#if "cli" in connectors:
-		#	from connectors import cli
-		#	connectormods.append(cli)
-		#if "web" in connectors:
-		#	from connectors import web
-		#	connectormods.append(web)
 		for connector in connectors:
 			mod = importlib.import_module("connectors." + connector)
 			connectormods.append(mod)
@@ -143,10 +137,8 @@ class Snafu:
 				config = json.load(open(configname))
 		sourcetree = ast.parse(sourcecode)
 		loader = importlib.machinery.SourceFileLoader(os.path.basename(source), source)
-		#mod = loader.load_module()
 		mod = types.ModuleType(loader.name)
 		loader.exec_module(mod)
-		#print(sourcetree)
 		sourcename = os.path.basename(source).split(".")[0]
 		for node in ast.walk(sourcetree):
 			if type(node) == ast.FunctionDef:
@@ -155,7 +147,6 @@ class Snafu:
 				if convention != "lambda" or node.name == handlername:
 					if not self.quiet:
 						print("  function: {}.{}".format(sourcename, node.name))
-					#print(dir(node))
 					func = getattr(mod, node.name)
 					if not node.name in self.functions:
 						self.functions[node.name] = {}
@@ -182,8 +173,6 @@ class SnafuRunner:
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
 		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
 		args = parser.parse_args()
-		#print(args.convention)
-		#print(args.file)
 
 		if not args.file:
 			args.file.append("functions")
