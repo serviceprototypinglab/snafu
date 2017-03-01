@@ -5,7 +5,7 @@ FROM python:3
 
 ADD . /opt
 
-RUN echo 'cd /opt && PYTHONPATH=/usr/lib/python3/dist-packages python3 ./snafu-control' > /opt/snafu-control.sh && chmod +x /opt/snafu-control.sh
+RUN echo 'cd /opt && PYTHONPATH=/usr/lib/python3/dist-packages python3 -u ./snafu-control' > /opt/snafu-control.sh && chmod +x /opt/snafu-control.sh
 
 RUN apt-get update && apt-get install -y python3-flask
 

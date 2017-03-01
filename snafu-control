@@ -47,7 +47,7 @@ class SnafuControl:
 			args.file.append("functions")
 			args.file.append("functions-local")
 
-		SnafuControl.snafu = lib.snafu.Snafu(True)
+		SnafuControl.snafu = lib.snafu.Snafu(False)
 		self.snafu.activate(args.file, "lambda")
 
 		self.app.run(host="0.0.0.0", port=10000)
