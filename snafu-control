@@ -6,13 +6,15 @@ import flask
 import json
 import argparse
 import os
+import base64
+import subprocess
 import lib.snafu
 
 """
 add-permission
 create-alias
 create-event-source-mapping
-create-function
+* create-function
 delete-alias
 delete-event-source-mapping
 delete-function
@@ -84,6 +86,30 @@ class SnafuControl:
 
 	def __init__(self):
 		pass
+
+	@app.route("/2015-03-31/functions", methods=["POST"])
+	def createfunction():
+		data = flask.request.data.decode("utf-8")
+		config = json.loads(data)
+		functionname = config["FunctionName"]
+		try:
+			os.makedirs("functions-local/{}".format(functionname))
+		except:
+			err = json.dumps({"errorMessage": "ResourceConflictException"})
+			return err, 501
+
+		f = open("functions-local/{}.zip".format(functionname), "wb")
+		f.write(base64.b64decode(config["Code"]["ZipFile"]))
+		f.close()
+
+		filename = config["Handler"].split(".")[0]
+		subprocess.run("cd functions-local/{} && unzip -q ../{}.zip".format(functionname, functionname), shell=True)
+		f = open("functions-local/{}/{}.config".format(functionname, filename), "w")
+		del config["Code"]
+		# TODO: extend configuration
+		f.write(json.dumps(config))
+		f.close()
+		return json.dumps(config)
 
 	@app.route("/2015-03-31/functions/")
 	def listfunctions():
