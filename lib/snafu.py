@@ -39,6 +39,7 @@ class Snafu:
 		self.functions = {}
 		self.quiet = quiet
 		self.connectormods = []
+		self.interactive = False
 
 	def info(self, s):
 		col_on = "\x1b[32m\x1b[1m"
@@ -48,26 +49,26 @@ class Snafu:
 	def execute(self, funcname, **kwargs):
 		sourcename = None
 		if "." in funcname:
-			sourcename, funcname = funcname.split(".")
+			sourcename, funcnamepart = funcname.split(".")
 		if funcname in self.functions:
 			funcs = self.functions[funcname]
 		else:
 			print("Error: {} is not a function.".format(funcname), file=sys.stderr)
 			return
-		if not sourcename:
-			if len(funcs) == 1:
-				func = list(funcs.values())[0]
-			else:
-				print("Error: {} is ambiguous; qualifiers: {}.".format(funcname, list(funcs.keys())), file=sys.stderr)
-				return
-		else:
-			if sourcename in funcs:
-				func = funcs[sourcename]
-			else:
-				print("Error: {}.{} is not a function.".format(sourcename, funcname), file=sys.stderr)
-				return
+		#if not sourcename:
+		#	if len(funcs) == 1:
+		#		func = list(funcs.values())[0]
+		#	else:
+		#		print("Error: {} is ambiguous; qualifiers: {}.".format(funcname, list(funcs.keys())), file=sys.stderr)
+		#		return
+		#else:
+		#	if sourcename in funcs:
+		#		func = funcs[sourcename]
+		#	else:
+		#		print("Error: {}.{} is not a function.".format(sourcename, funcname), file=sys.stderr)
+		#		return
 
-		func, config, sourceinfos = func
+		func, config, sourceinfos = funcs
 		self.info("function:{}".format(funcname))
 		if config:
 			if "Environment" in config:
@@ -88,7 +89,7 @@ class Snafu:
 				ctx.function_name = funcname
 				funcargs.append(ctx)
 			else:
-				if "cli" in self.connectormods:
+				if self.interactive:
 					if os.isatty(sys.stdin.fileno()):
 						data = input("Data for argument {} needed:".format(wantedarg))
 					else:
@@ -111,6 +112,8 @@ class Snafu:
 		if not self.quiet:
 			for connector in connectors:
 				print("+ connector:", connector)
+				if connector == "cli":
+					self.interactive = True
 
 		connectormods = []
 		for connector in connectors:
@@ -167,12 +170,16 @@ class Snafu:
 				else:
 					handlerbase, handlername = handler.split(".")
 				if convention != "lambda" or (node.name == handlername and sourcename == handlerbase):
+					funcname = sourcename + "." + node.name
+					if config and "FunctionName" in config and convention == "lambda":
+						funcname = config["FunctionName"]
 					if not self.quiet:
-						print("  function: {}.{}".format(sourcename, node.name))
+						print("  function: {}".format(funcname))
 					func = getattr(mod, node.name)
-					if not node.name in self.functions:
-						self.functions[node.name] = {}
-					self.functions[node.name][sourcename] = (func, config, sourceinfos)
+					#if not node.name in self.functions:
+					#	self.functions[node.name] = {}
+					#self.functions[node.name][sourcename] = (func, config, sourceinfos)
+					self.functions[funcname] = (func, config, sourceinfos)
 				else:
 					if not self.quiet:
 						print("  skip function {}.{}".format(sourcename, node.name))

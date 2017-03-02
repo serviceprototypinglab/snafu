@@ -38,8 +38,8 @@ update-function-configuration
 """
 
 class ControlUtil:
-	def createconfig(function, sourcename, sourceinfos):
-		functionname = os.path.dirname(sourceinfos.source)
+	def createconfig(function, sourceinfos):
+		sourcename, functionname = function.split(".")
 
 		fmap = {}
 		env = {}
@@ -50,11 +50,11 @@ class ControlUtil:
 		vpc = {}
 		#vpc["SecurityGroupIds"] = []
 		#vpc["SubnetIds"] = []
-		fmap["FunctionName"] = functionname
+		fmap["FunctionName"] = function
 		fmap["Version"] = "$LATEST"
 		#fmap["MemorySize"] = 128
 		fmap["MemorySize"] = -1
-		fmap["Handler"] = "{}.{}".format(sourcename, function)
+		fmap["Handler"] = "{}.{}".format(sourcename, functionname)
 		fmap["LastModified"] = "2017-01-01T00:00:00.000+0000"
 		fmap["CodeSha256"] = sourceinfos.checksum
 		fmap["CodeSize"] = sourceinfos.size
@@ -70,12 +70,12 @@ class ControlUtil:
 			fmap["VpcConfig"] = vpc
 		return fmap
 
-	def functionconfiguration(function, sourcename):
-		func, config, sourceinfos = SnafuControl.snafu.functions[function][sourcename]
+	def functionconfiguration(function):
+		func, config, sourceinfos = SnafuControl.snafu.functions[function]
 		if config:
 			fmap = config
 		else:
-			fmap = ControlUtil.createconfig(function, sourcename, sourceinfos)
+			fmap = ControlUtil.createconfig(function, sourceinfos)
 		return fmap
 
 class SnafuControl:
@@ -89,9 +89,8 @@ class SnafuControl:
 	def listfunctions():
 		f = []
 		for function in SnafuControl.snafu.functions:
-			for sourcename in SnafuControl.snafu.functions[function]:
-				fmap = ControlUtil.functionconfiguration(function, sourcename)
-				f.append(fmap)
+			fmap = ControlUtil.functionconfiguration(function)
+			f.append(fmap)
 
 		functions = {"Functions" : f}
 		return json.dumps(functions)
@@ -99,7 +98,7 @@ class SnafuControl:
 	@app.route("/2015-03-31/functions/<function>/configuration")
 	def getfunctionconfiguration(function):
 		if function in SnafuControl.snafu.functions:
-			return json.dumps(ControlUtil.functionconfiguration(function, sourcename))
+			return json.dumps(ControlUtil.functionconfiguration(function))
 		else:
 			err = json.dumps({"errorMessage": "ResourceNotFoundException"})
 			return err, 501
