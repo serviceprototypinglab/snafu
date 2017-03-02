@@ -11,7 +11,8 @@ import subprocess
 import lib.snafu
 
 """
-add-permission
+/ [sts] get-caller-identity
+/ add-permission
 create-alias
 create-event-source-mapping
 * create-function
@@ -87,6 +88,11 @@ class SnafuControl:
 	def __init__(self):
 		pass
 
+	@app.route("/", methods=["POST"])
+	def sts():
+		#data = flask.request.data.decode("utf-8")
+		return "<GetCallerIdentityResponse xmlns='https://sts.amazonaws.com/doc/2011-06-15/'><GetCallerIdentityResult><Account>000000000000</Account></GetCallerIdentityResult></GetCallerIdentityResponse>"
+
 	@app.route("/2015-03-31/functions", methods=["POST"])
 	def createfunction():
 		data = flask.request.data.decode("utf-8")
@@ -128,6 +134,16 @@ class SnafuControl:
 		else:
 			err = json.dumps({"errorMessage": "ResourceNotFoundException"})
 			return err, 501
+
+	@app.route("/2015-03-31/functions/<function>/policy", methods=["POST"])
+	def addpermission(function):
+		data = flask.request.data.decode("utf-8")
+		"""
+		{"Action": "lambda:InvokeFunction", "StatementId": "Y_reverse", "Principal": "X"}
+		->
+		{"Statement": "{\"Sid\":\"Y_reverse\",\"Resource\":\"arn:aws:lambda:us-west-1:*:function:Y\",\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"arn:aws:iam::*:role/lambda_basic_execution\"},\"Action\":[\"lambda:InvokeFunction\"]}"}
+		"""
+		return "{}"
 
 	@app.route("/2015-03-31/functions/<function>/invocations", methods=["POST"])
 	def invoke(function):
