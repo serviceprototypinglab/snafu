@@ -6,6 +6,12 @@ import subprocess
 import json
 import os
 import glob
+import shutil
+import sys
+
+convert = False
+if len(sys.argv) == 2 and sys.argv[1] == "--convert":
+	convert = True
 
 functiondir = "functions-local"
 os.makedirs(functiondir, exist_ok=True)
@@ -23,11 +29,17 @@ for func in functions["Functions"]:
 	funcdir = os.path.join(functiondir, funcname)
 	os.makedirs(funcdir, exist_ok=True)
 	codezip = os.path.join(functiondir, funcname + ".zip")
-	proc = subprocess.run("wget -q -O {} '{}'".format(codezip, funccode), shell=True)
-	proc = subprocess.run("cd {} && unzip -q ../{}".format(funcdir, os.path.basename(codezip)), shell=True)
+	subprocess.run("wget -q -O {} '{}'".format(codezip, funccode), shell=True)
+	subprocess.run("cd {} && unzip -q ../{}".format(funcdir, os.path.basename(codezip)), shell=True)
 	codefiles = glob.glob(os.path.join(funcdir, "*.py"))
 	codefile = codefiles[0]
 	print("+ code: {}".format(codefile))
+	if convert:
+		oldcodefile = codefile.replace(".py", ".py2")
+		shutil.copyfile(codefile, oldcodefile)
+		subprocess.run("2to3 --no-diffs -nw {} 2>/dev/null".format(codefile), shell=True)
+		print("+ converted; old code: {}".format(oldcodefile))
+		func["Runtime"] = "python3"
 	configfile = os.path.join(funcdir, os.path.basename(codefile).split(".")[0] + ".config")
 	f = open(configfile, "w")
 	json.dump(func, f)

@@ -8,6 +8,35 @@ import argparse
 import os
 import lib.snafu
 
+"""
+add-permission
+create-alias
+create-event-source-mapping
+create-function
+delete-alias
+delete-event-source-mapping
+delete-function
+get-account-settings
+get-alias
+get-event-source-mapping
+get-function
+* get-function-configuration
+get-policy
+# help
+* invoke
+invoke-async
+list-aliases
+list-event-source-mappings
+* list-functions
+list-versions-by-function
+publish-version
+remove-permission
+update-alias
+update-event-source-mapping
+update-function-code
+update-function-configuration
+"""
+
 class ControlUtil:
 	def createconfig(function, sourcename, sourceinfos):
 		functionname = os.path.dirname(sourceinfos.source)
@@ -41,6 +70,14 @@ class ControlUtil:
 			fmap["VpcConfig"] = vpc
 		return fmap
 
+	def functionconfiguration(function, sourcename):
+		func, config, sourceinfos = SnafuControl.snafu.functions[function][sourcename]
+		if config:
+			fmap = config
+		else:
+			fmap = ControlUtil.createconfig(function, sourcename, sourceinfos)
+		return fmap
+
 class SnafuControl:
 	app = flask.Flask("snafu-control")
 	snafu = None
@@ -53,15 +90,19 @@ class SnafuControl:
 		f = []
 		for function in SnafuControl.snafu.functions:
 			for sourcename in SnafuControl.snafu.functions[function]:
-				func, config, sourceinfos = SnafuControl.snafu.functions[function][sourcename]
-				if config:
-					fmap = config
-				else:
-					fmap = ControlUtil.createconfig(function, sourcename, sourceinfos)
+				fmap = ControlUtil.functionconfiguration(function, sourcename)
 				f.append(fmap)
 
 		functions = {"Functions" : f}
 		return json.dumps(functions)
+
+	@app.route("/2015-03-31/functions/<function>/configuration")
+	def getfunctionconfiguration(function):
+		if function in SnafuControl.snafu.functions:
+			return json.dumps(ControlUtil.functionconfiguration(function, sourcename))
+		else:
+			err = json.dumps({"errorMessage": "ResourceNotFoundException"})
+			return err, 501
 
 	@app.route("/2015-03-31/functions/<function>/invocations", methods=["POST"])
 	def invoke(function):
@@ -76,6 +117,10 @@ class SnafuControl:
 			err = json.dumps({"errorMessage": "ServiceException"})
 			return err, 501
 		return response
+
+	@app.errorhandler(404)
+	def notfound(error):
+		return "Invalid request.", 404
 
 	def run(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service - Control Plane")

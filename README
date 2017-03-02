@@ -17,17 +17,22 @@ All connectors are described below.
 The utility script 'snafu-import' exists to slurp Lambda functions and
 configurations for execution with Snafu. Configuration support is
 limited to environment variables at the moment. Configuration files are
-read as *.config associated to *.py.
+read as *.config associated to *.py. In their absence, the handler name
+(<source>.<function>) becomes the function name.
 
 Snafu is implemented in Python 3 so that any Lambda functions need to be
 passed through the 2to3 tool. It is expected that Python 3 will be added
-to Lambda in the near future, making this step then obsolete.
+to Lambda in the near future, making this step then obsolete. Imports
+can be converted automatically.
 
 The runtime of invoked functions is measured and recorded in a CSV file
 named 'snafu.csv' which can be further processed for statistical
 analysis.
 
+Usage
+-----
 Snafu runs until interrupted with Ctrl+C.
+% ./snafu [-h]
 
 Apart from hosting the functions, Snafu can also be used as Swiss army
 knife of serverless computing. For instance:
@@ -37,6 +42,9 @@ The control plane 'snafu-control' implements essential functionality
 found in the Lambda control plane via Snafu. Use aws-cli with the option
 --endpoint-url to redirect all requests to your instance (by default, it
 runs on http://localhost:10000/).
+% ./snafu-control [-h]
+
+% ./snafu-import [--convert]
 
 Connectors
 ----------
@@ -45,3 +53,8 @@ Connectors
 * web (function name chosen via URL path; payload via HTTP POST)
 * messaging (no function name choice: calls hello_world; no payload?)
 * filesystem (no function name choice: calls lambda_handler; no payload?)
+
+Docker container
+----------------
+A containerised version is made available.
+% docker run -ti jszhaw/snafu
