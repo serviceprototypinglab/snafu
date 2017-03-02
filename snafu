@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Snafu: Snake Functions
+# Snafu: Snake Functions - Command-Line Tool
 
 import lib.snafu
 

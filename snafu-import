@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Snafu: Snake Functions
+# Snafu: Snake Functions - Import Utility
 
 import subprocess
 import json

@@ -1,11 +1,45 @@
 #!/usr/bin/env python3
 #
-# Snafu: Snake Functions
+# Snafu: Snake Functions - Control Plane
 
 import flask
 import json
 import argparse
+import os
 import lib.snafu
+
+class ControlUtil:
+	def createconfig(function, sourcename, sourceinfos):
+		functionname = os.path.dirname(sourceinfos.source)
+
+		fmap = {}
+		env = {}
+		envvars = {}
+		#envvars["TEST"] = "XXX"
+		if envvars:
+			env["Variables"] = envvars
+		vpc = {}
+		#vpc["SecurityGroupIds"] = []
+		#vpc["SubnetIds"] = []
+		fmap["FunctionName"] = functionname
+		fmap["Version"] = "$LATEST"
+		#fmap["MemorySize"] = 128
+		fmap["MemorySize"] = -1
+		fmap["Handler"] = "{}.{}".format(sourcename, function)
+		fmap["LastModified"] = "2017-01-01T00:00:00.000+0000"
+		fmap["CodeSha256"] = sourceinfos.checksum
+		fmap["CodeSize"] = sourceinfos.size
+		fmap["Timeout"] = 3
+		#fmap["Runtime"] = "python2.7"
+		fmap["Runtime"] = "python3"
+		fmap["Description"] = "<function without configuration>"
+		#fmap["Role"] = "arn:...:XXX"
+		#fmap["FunctionArn"] = "arn:...:XXX"
+		if env:
+			fmap["Environment"] = env
+		if vpc:
+			fmap["VpcConfig"] = vpc
+		return fmap
 
 class SnafuControl:
 	app = flask.Flask("snafu-control")
@@ -18,8 +52,13 @@ class SnafuControl:
 	def listfunctions():
 		f = []
 		for function in SnafuControl.snafu.functions:
-			fmap = {"FunctionName": function, "Version": "$LATEST"}
-			f.append(fmap)
+			for sourcename in SnafuControl.snafu.functions[function]:
+				func, config, sourceinfos = SnafuControl.snafu.functions[function][sourcename]
+				if config:
+					fmap = config
+				else:
+					fmap = ControlUtil.createconfig(function, sourcename, sourceinfos)
+				f.append(fmap)
 
 		functions = {"Functions" : f}
 		return json.dumps(functions)

@@ -1,4 +1,4 @@
-# Snafu: Snake Functions
+# Snafu: Snake Functions - Main Module
 
 import argparse
 import os
@@ -11,6 +11,19 @@ import types
 import inspect
 import time
 import json
+import hashlib
+import base64
+
+class SnafuFunctionSource:
+	def __init__(self, source, scan=True):
+		self.source = source
+		self.size = None
+		self.checksum = None
+		self.content = None
+		if scan:
+			self.size = os.stat(source).st_size
+			self.content = open(source).read()
+			self.checksum = base64.b64encode(hashlib.sha256(bytes(self.content, "utf-8")).digest()).decode("utf-8")
 
 class SnafuContext:
 	def __init__(self):
@@ -54,7 +67,7 @@ class Snafu:
 				print("Error: {}.{} is not a function.".format(sourcename, funcname), file=sys.stderr)
 				return
 
-		func, config = func
+		func, config, sourceinfos = func
 		self.info("function:{}".format(funcname))
 		if config:
 			if "Environment" in config:
@@ -122,19 +135,25 @@ class Snafu:
 				time.sleep(5)
 
 	def activatefile(self, source, convention):
+		sourceinfos = None
 		try:
-			sourcecode = open(source).read()
+			sourceinfos = SnafuFunctionSource(source)
+			sourcecode = sourceinfos.content
 		except:
 			print("Warning: {} is not parseable, skipping.".format(source), file=sys.stderr)
 			return
 		if not self.quiet:
 			print("» module:", source)
+		handler = None
 		config = None
 		configname = source.split(".")[0] + ".config"
 		if os.path.isfile(configname):
 			if not self.quiet:
 				print("  config:", configname)
 				config = json.load(open(configname))
+				if config:
+					if "Handler" in config:
+						handler = config["Handler"]
 		sourcetree = ast.parse(sourcecode)
 		loader = importlib.machinery.SourceFileLoader(os.path.basename(source), source)
 		mod = types.ModuleType(loader.name)
@@ -142,15 +161,21 @@ class Snafu:
 		sourcename = os.path.basename(source).split(".")[0]
 		for node in ast.walk(sourcetree):
 			if type(node) == ast.FunctionDef:
-				handlername = "lambda_handler"
-				# FIXME: if configuration is present, this may be named differently
-				if convention != "lambda" or node.name == handlername:
+				if not handler:
+					handlername = "lambda_handler"
+					handlerbase = sourcename
+				else:
+					handlerbase, handlername = handler.split(".")
+				if convention != "lambda" or (node.name == handlername and sourcename == handlerbase):
 					if not self.quiet:
 						print("  function: {}.{}".format(sourcename, node.name))
 					func = getattr(mod, node.name)
 					if not node.name in self.functions:
 						self.functions[node.name] = {}
-					self.functions[node.name][sourcename] = (func, config)
+					self.functions[node.name][sourcename] = (func, config, sourceinfos)
+				else:
+					if not self.quiet:
+						print("  skip function {}.{}".format(sourcename, node.name))
 
 	def activate(self, sources, convention):
 		for source in sources:
