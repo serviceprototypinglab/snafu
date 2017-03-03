@@ -185,6 +185,8 @@ class SnafuControl:
 			#flask.abort(500)
 			err = json.dumps({"errorMessage": "ServiceException"})
 			return err, 501
+		if type(response) == dict:
+			response = json.dumps(response)
 		return response
 
 	@app.errorhandler(404)
