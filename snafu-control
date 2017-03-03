@@ -178,7 +178,7 @@ class SnafuControl:
 		dataargs = {}
 		data = flask.request.data.decode("utf-8")
 		if data:
-			dataargs["event"] = data
+			dataargs["event"] = json.loads(data)
 
 		response = SnafuControl.snafu.execute(function, **dataargs)
 		if not response:
