@@ -13,6 +13,9 @@ import time
 import json
 import hashlib
 import base64
+import glob
+import subprocess
+import shutil
 
 class SnafuFunctionSource:
 	def __init__(self, source, scan=True):
@@ -24,6 +27,32 @@ class SnafuFunctionSource:
 			self.size = os.stat(source).st_size
 			self.content = open(source).read()
 			self.checksum = base64.b64encode(hashlib.sha256(bytes(self.content, "utf-8")).digest()).decode("utf-8")
+
+class SnafuImport:
+	functiondir = "functions-local"
+
+	def prepare():
+		os.makedirs(SnafuImport.functiondir, exist_ok=True)
+
+	def importfunction(funcname, codezip, config, convert=False):
+		funcdir = os.path.join(SnafuImport.functiondir, funcname)
+		os.makedirs(funcdir, exist_ok=True)
+		subprocess.run("cd {} && unzip -q ../{}".format(funcdir, os.path.basename(codezip)), shell=True)
+		codefiles = glob.glob(os.path.join(funcdir, "*.py"))
+		codefile = codefiles[0]
+		oldcodefile = None
+		if convert and config["Runtime"] == "python2.7":
+			oldcodefile = codefile.replace(".py", ".py2")
+			shutil.copyfile(codefile, oldcodefile)
+			subprocess.run("2to3 --no-diffs -nw {} 2>/dev/null".format(codefile), shell=True)
+			config["Runtime"] = "python3"
+		configfile = os.path.join(funcdir, os.path.basename(codefile).split(".")[0] + ".config")
+		#filename = config["Handler"].split(".")[0]
+		#configfile = "functions-local/{}/{}.config".format(functionname, filename)
+		f = open(configfile, "w")
+		json.dump(config, f)
+
+		return codefile, configfile, oldcodefile
 
 class SnafuContext:
 	def __init__(self):

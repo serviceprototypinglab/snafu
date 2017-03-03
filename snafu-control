@@ -8,9 +8,13 @@ import argparse
 import os
 import base64
 import subprocess
+import glob
 import lib.snafu
 
 """
+AWS CLI support
+Legend: * = implemented, / = noop, # = not necessary
+* [s3] "download-function"
 / [sts] get-caller-identity
 / add-permission
 create-alias
@@ -22,7 +26,7 @@ delete-function
 get-account-settings
 get-alias
 get-event-source-mapping
-get-function
+* get-function
 * get-function-configuration
 get-policy
 # help
@@ -93,6 +97,16 @@ class SnafuControl:
 		#data = flask.request.data.decode("utf-8")
 		return "<GetCallerIdentityResponse xmlns='https://sts.amazonaws.com/doc/2011-06-15/'><GetCallerIdentityResult><Account>000000000000</Account></GetCallerIdentityResult></GetCallerIdentityResponse>"
 
+	@app.route("/function-download/<function>.zip")
+	def functiondownload(function):
+		func, config, sourceinfos = SnafuControl.snafu.functions[function]
+		try:
+			content = open(sourceinfos.source).read()
+		except:
+			err = json.dumps({"errorMessage": "NoZipFilePresent"})
+			return err, 501
+		return flask.Response(content, mimetype="application/octet-stream")
+
 	@app.route("/2015-03-31/functions", methods=["POST"])
 	def createfunction():
 		data = flask.request.data.decode("utf-8")
@@ -104,17 +118,17 @@ class SnafuControl:
 			err = json.dumps({"errorMessage": "ResourceConflictException"})
 			return err, 501
 
-		f = open("functions-local/{}.zip".format(functionname), "wb")
+		codezip = "functions-local/{}.zip".format(functionname)
+		f = open(codezip, "wb")
 		f.write(base64.b64decode(config["Code"]["ZipFile"]))
 		f.close()
 
-		filename = config["Handler"].split(".")[0]
-		subprocess.run("cd functions-local/{} && unzip -q ../{}.zip".format(functionname, functionname), shell=True)
-		f = open("functions-local/{}/{}.config".format(functionname, filename), "w")
 		del config["Code"]
-		# TODO: extend configuration
-		f.write(json.dumps(config))
-		f.close()
+		### TODO: extend configuration
+
+		lib.snafu.SnafuImport.prepare()
+		lib.snafu.SnafuImport.importfunction(functionname, codezip, config, convert=True)
+
 		return json.dumps(config)
 
 	@app.route("/2015-03-31/functions/")
@@ -126,6 +140,20 @@ class SnafuControl:
 
 		functions = {"Functions" : f}
 		return json.dumps(functions)
+
+	@app.route("/2015-03-31/functions/<function>")
+	def getfunction(function):
+		if function in SnafuControl.snafu.functions:
+			funccode = {}
+			funccode["RepositoryType"] = "snafu"
+			funccode["Location"] = "http://localhost:10000/function-download/{}.zip".format(function)
+			func = {}
+			func["Code"] = funccode
+			func["Configuration"] = ControlUtil.functionconfiguration(function)
+			return json.dumps(func)
+		else:
+			err = json.dumps({"errorMessage": "ResourceNotFoundException"})
+			return err, 501
 
 	@app.route("/2015-03-31/functions/<function>/configuration")
 	def getfunctionconfiguration(function):

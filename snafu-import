@@ -5,16 +5,14 @@
 import subprocess
 import json
 import os
-import glob
-import shutil
 import sys
+import lib.snafu
 
 convert = False
 if len(sys.argv) == 2 and sys.argv[1] == "--convert":
 	convert = True
 
-functiondir = "functions-local"
-os.makedirs(functiondir, exist_ok=True)
+lib.snafu.SnafuImport.prepare()
 
 proc = subprocess.run("aws lambda list-functions", stdout=subprocess.PIPE, shell=True)
 out = proc.stdout.decode("utf-8")
@@ -26,21 +24,12 @@ for func in functions["Functions"]:
 	out = proc.stdout.decode("utf-8")
 	function = json.loads(out)
 	funccode = function["Code"]["Location"]
-	funcdir = os.path.join(functiondir, funcname)
-	os.makedirs(funcdir, exist_ok=True)
-	codezip = os.path.join(functiondir, funcname + ".zip")
+	codezip = os.path.join(lib.snafu.SnafuImport.functiondir, funcname + ".zip")
 	subprocess.run("wget -q -O {} '{}'".format(codezip, funccode), shell=True)
-	subprocess.run("cd {} && unzip -q ../{}".format(funcdir, os.path.basename(codezip)), shell=True)
-	codefiles = glob.glob(os.path.join(funcdir, "*.py"))
-	codefile = codefiles[0]
+
+	codefile, configfile, oldcodefile = lib.snafu.SnafuImport.importfunction(funcname, codezip, func, convert)
+
 	print("+ code: {}".format(codefile))
-	if convert:
-		oldcodefile = codefile.replace(".py", ".py2")
-		shutil.copyfile(codefile, oldcodefile)
-		subprocess.run("2to3 --no-diffs -nw {} 2>/dev/null".format(codefile), shell=True)
-		print("+ converted; old code: {}".format(oldcodefile))
-		func["Runtime"] = "python3"
-	configfile = os.path.join(funcdir, os.path.basename(codefile).split(".")[0] + ".config")
-	f = open(configfile, "w")
-	json.dump(func, f)
 	print("+ configuration: {}".format(configfile))
+	if oldcodefile:
+		print("+ converted; old code: {}".format(oldcodefile))
