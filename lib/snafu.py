@@ -16,6 +16,7 @@ import base64
 import glob
 import subprocess
 import shutil
+import threading
 
 class SnafuFunctionSource:
 	def __init__(self, source, scan=True):
@@ -71,9 +72,16 @@ class Snafu:
 		self.interactive = False
 
 	def info(self, s):
+		if self.quiet and not self.interactive:
+			return
+
 		col_on = "\x1b[32m\x1b[1m"
 		col_off = "\x1b[0m"
-		print(col_on + s + col_off)
+
+		timestamp = time.time()
+		callid = threading.get_ident()
+
+		print(col_on + "[{:.3f}][{}][{}]".format(timestamp, callid, s) + col_off)
 
 	def execute(self, funcname, **kwargs):
 		sourcename = None
@@ -101,7 +109,7 @@ class Snafu:
 		self.info("function:{}".format(funcname))
 		if config:
 			if "Environment" in config:
-				self.info("[config:environment]")
+				self.info("config:environment")
 				envvars = config["Environment"]["Variables"]
 				for envvar in envvars:
 					os.environ[envvar] = envvars[envvar]
@@ -129,12 +137,20 @@ class Snafu:
 					return
 
 		stime = time.time()
-		res = func(*funcargs)
-		self.info("[result:{}]".format(res))
+		try:
+			res = func(*funcargs)
+			success = True
+		except:
+			self.info("exception!")
+			res = None
+			success = False
+		self.info("result:{}".format(res))
 		dtime = (time.time() - stime) * 1000
-		self.info("[time:{:1.3f}ms]".format(dtime))
+		self.info("time:{:1.3f}ms".format(dtime))
+		# FIXME: this part must become mt-safe through a protected section
 		f = open("snafu.csv", "a")
-		print("{},{},{:1.3f}".format(sourcename or "", funcname, dtime), file=f)
+		print("{},{},{:1.3f},{}".format(sourcename or "", funcname, dtime, success), file=f)
+		f.close()
 		return res
 
 	def connect(self, connectors):
@@ -182,10 +198,10 @@ class Snafu:
 		if os.path.isfile(configname):
 			if not self.quiet:
 				print("  config:", configname)
-				config = json.load(open(configname))
-				if config:
-					if "Handler" in config:
-						handler = config["Handler"]
+			config = json.load(open(configname))
+			if config:
+				if "Handler" in config:
+					handler = config["Handler"]
 		sourcetree = ast.parse(sourcecode)
 		loader = importlib.machinery.SourceFileLoader(os.path.basename(source), source)
 		mod = types.ModuleType(loader.name)

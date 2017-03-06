@@ -10,6 +10,13 @@ import base64
 import subprocess
 import glob
 import lib.snafu
+import logging
+
+try:
+	import setproctitle
+	setproctitle.setproctitle("snafu-control")
+except:
+	pass
 
 """
 AWS CLI support
@@ -196,14 +203,19 @@ class SnafuControl:
 	def run(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service - Control Plane")
 		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
+		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
 		args = parser.parse_args()
 
 		if not args.file:
 			args.file.append("functions")
 			args.file.append("functions-local")
 
-		SnafuControl.snafu = lib.snafu.Snafu(False)
+		SnafuControl.snafu = lib.snafu.Snafu(args.quiet)
 		self.snafu.activate(args.file, "lambda")
+
+		if args.quiet:
+			log = logging.getLogger("werkzeug")
+			log.setLevel(logging.ERROR)
 
 		self.app.run(host="0.0.0.0", port=10000, threaded=True)
 
