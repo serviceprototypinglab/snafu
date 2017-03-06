@@ -1,18 +1,26 @@
 Snafu: Snake Functions
 (☺) 2017 Josef Spillner <josef.spillner@zhaw.ch>
-================================================
+(C) 2017 Zürcher Hochschule für Angewandte Wissenschaften
+=========================================================
 
-Snafu is a tiny Function-as-a-Service (FaaS) host process for Python.
+Snafu is a tiny flexible Function-as-a-Service (FaaS) host process for Python.
+Snafu is unique in reducing the effort to get going (no configuration is
+required, although a configuration file is available for optional
+customisation), in choosing the execution model (with and without isolation for
+instance) and in exposure of functions.
+
 Functions are read from specified Python source files. If no directory
-is specified, 'functions' as well as 'functions-local' are scanned.
+is specified, 'functions' with some sample functions as well as
+'functions-local' for user-imported functions are scanned.
 
 The set of exported functions consists of all of them (convention name:
-any) or just one pre-defined function by default named lambda_handler
+any) or just one pre-defined function by default named 'lambda_handler'
 with specific arguments, for compatibility with AWS Lambda's Python 2.7
-runtime (convention name: lambda). Functions are invoked through
+runtime (convention name: 'lambda'). Functions are invoked through
 connectors, for instance HTTP requests or interactive command-line input
 or both at the same time. They correspond roughly to Lambda triggers.
-All connectors are described below.
+The invocations are recorded in loggers, for instance CSV files. All
+connectors and loggers are described below.
 
 The utility script 'snafu-import' exists to slurp Lambda functions and
 configurations for execution with Snafu. Configuration support is
@@ -21,30 +29,37 @@ read as *.config associated to *.py. In their absence, the handler name
 (<source>.<function>) becomes the function name.
 
 Snafu is implemented in Python 3 so that any Lambda functions need to be
-passed through the 2to3 tool. It is expected that Python 3 will be added
-to Lambda in the near future, making this step then obsolete. Imports
-can be converted automatically.
+passed through the 2to3 tool which 'snafu-import' can automate. It is
+expected that Python 3 will be added to Lambda in the near future,
+making this step then obsolete.
 
-The runtime of invoked functions is measured and recorded in a CSV file
-named 'snafu.csv' which can be further processed for statistical
-analysis.
+The runtime and success status of invoked functions are measured through
+the loggers and can be further processed for statistical analysis and
+billing purposes.
 
 Usage
 -----
 Snafu runs until interrupted with Ctrl+C.
+
 % ./snafu [-h]
+
+To fill up the functions pool with some already deployed in Lambda, use
+the import script.
+
+% ./snafu-import [--convert]
 
 Apart from hosting the functions, Snafu can also be used as Swiss army
 knife of serverless computing. For instance:
+
 % echo "{}" | ./snafu -x lambda_function.lambda_handler
 
 The control plane 'snafu-control' implements essential functionality
 found in the Lambda control plane via Snafu. Use aws-cli with the option
 --endpoint-url to redirect all requests to your instance (by default, it
-runs on http://localhost:10000/).
-% ./snafu-control [-h]
+runs on http://localhost:10000/). It is highly recommended to add
+--cli-read-timeout 0 as well.
 
-% ./snafu-import [--convert]
+% ./snafu-control [-h]
 
 Connectors
 ----------
@@ -54,7 +69,27 @@ Connectors
 * messaging (no function name choice: calls hello_world; no payload?)
 * filesystem (no function name choice: calls lambda_handler; no payload?)
 
+Loggers
+-------
+* csv
+* sqlite
+
 Docker container
 ----------------
 A containerised version is made available.
+
 % docker run -ti jszhaw/snafu
+
+Licence
+-------
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use any file in this repository except in compliance with
+the License. You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

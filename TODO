@@ -1,0 +1,14 @@
+All function calls are currently performed anonymously without
+authentication, making Snafu suitable primarily for experiments,
+prototyping and internal use. Future versions will offer authentication
+through 'snafu-control' and perhaps through the web connector as well.
+
+Functions implemented in Python 2 and in other programming languages are
+currently not supported. This may be changed by the introduction of
+external launchers, at the cost of higher call overhead.
+
+Some clients (notably awscli) close connections and open new ones while
+functions are still running without any chance to report back their
+results. Snafu would have to clean up the sockets in CLOSE_WAIT state.
+
+Asynchronous invocations are not supported at all at the moment.
