@@ -1,3 +1,5 @@
+# Snafu: Snake Functions - Messaging Connector
+
 import kombu
 import threading
 import time

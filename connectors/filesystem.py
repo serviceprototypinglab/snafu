@@ -1,3 +1,5 @@
+# Snafu: Snake Functions - Filesystem Connector
+
 import pyinotify
 import threading
 

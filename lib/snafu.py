@@ -70,8 +70,19 @@ class Snafu:
 		self.functions = {}
 		self.quiet = quiet
 		self.connectormods = []
+		self.loggermods = []
 		self.interactive = False
 		self.isolation = isolation
+
+	def setuploggers(self, loggers):
+		if not self.quiet:
+			for logger in loggers:
+				print("+ logger:", logger)
+
+		self.loggermods = []
+		for logger in loggers:
+			mod = importlib.import_module("loggers." + logger)
+			self.loggermods.append(mod)
 
 	def info(self, s):
 		if self.quiet and not self.interactive:
@@ -154,10 +165,10 @@ class Snafu:
 		self.info("result:{}".format(res))
 		dtime = (time.time() - stime) * 1000
 		self.info("time:{:1.3f}ms".format(dtime))
-		# FIXME: this part must become mt-safe through a protected section
-		f = open("snafu.csv", "a")
-		print("{},{},{:1.3f},{}".format(sourcename or "", funcname, dtime, success), file=f)
-		f.close()
+
+		for loggermod in self.loggermods:
+			loggermod.log(sourcename or "", funcname, dtime, success)
+
 		return res
 
 	def connect(self, connectors):
@@ -250,21 +261,27 @@ class Snafu:
 				print("Warning: {} is not readable, skipping.".format(source), file=sys.stderr)
 
 class SnafuRunner:
+	def add_common_arguments(parser):
+		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
+		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
+		parser.add_argument("-l", "--logger", help="function loggers", choices=["csv", "sqlite"], default=["csv"], nargs="+")
+
 	def __init__(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service")
+		SnafuRunner.add_common_arguments(parser)
 		parser.add_argument("-c", "--convention", help="method call convention", choices=["any", "lambda"], default="any")
 		parser.add_argument("-C", "--connector", help="function connectors", choices=["cli", "web", "messaging", "filesystem"], default=["cli"], nargs="+")
 		parser.add_argument("-x", "--execute", help="execute a single function")
-		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
-		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
 		args = parser.parse_args()
 
 		if not args.file:
 			args.file.append("functions")
 			args.file.append("functions-local")
 
-		snafu = Snafu(args.quiet)
+		snafu = Snafu(args.quiet, False)
 		snafu.activate(args.file, args.convention)
+		snafu.setuploggers(args.logger)
+
 		if args.execute:
 			snafu.execute(args.execute)
 		else:

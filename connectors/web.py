@@ -1,3 +1,5 @@
+# Snafu: Snake Functions - Web Connector
+
 import flask
 import threading
 
