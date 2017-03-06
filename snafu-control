@@ -204,13 +204,14 @@ class SnafuControl:
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service - Control Plane")
 		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
+		parser.add_argument("-i", "--isolation", help="isolate stateful function instances", action="store_true")
 		args = parser.parse_args()
 
 		if not args.file:
 			args.file.append("functions")
 			args.file.append("functions-local")
 
-		SnafuControl.snafu = lib.snafu.Snafu(args.quiet)
+		SnafuControl.snafu = lib.snafu.Snafu(args.quiet, args.isolation)
 		self.snafu.activate(args.file, "lambda")
 
 		if args.quiet:

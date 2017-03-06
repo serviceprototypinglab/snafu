@@ -24,6 +24,7 @@ class SnafuFunctionSource:
 		self.size = None
 		self.checksum = None
 		self.content = None
+		self.module = None
 		if scan:
 			self.size = os.stat(source).st_size
 			self.content = open(source).read()
@@ -65,11 +66,12 @@ class SnafuContext:
 		return 999999
 
 class Snafu:
-	def __init__(self, quiet=False):
+	def __init__(self, quiet=False, isolation=False):
 		self.functions = {}
 		self.quiet = quiet
 		self.connectormods = []
 		self.interactive = False
+		self.isolation = isolation
 
 	def info(self, s):
 		if self.quiet and not self.interactive:
@@ -106,6 +108,11 @@ class Snafu:
 		#		return
 
 		func, config, sourceinfos = funcs
+
+		if self.isolation:
+			loader = importlib.machinery.SourceFileLoader(os.path.basename(sourceinfos.source), sourceinfos.source)
+			loader.exec_module(sourceinfos.module)
+
 		self.info("function:{}".format(funcname))
 		if config:
 			if "Environment" in config:
@@ -205,6 +212,7 @@ class Snafu:
 		sourcetree = ast.parse(sourcecode)
 		loader = importlib.machinery.SourceFileLoader(os.path.basename(source), source)
 		mod = types.ModuleType(loader.name)
+		sourceinfos.module = mod
 		loader.exec_module(mod)
 		sourcename = os.path.basename(source).split(".")[0]
 		for node in ast.walk(sourcetree):
