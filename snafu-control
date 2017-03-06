@@ -212,7 +212,7 @@ class SnafuControl:
 
 		SnafuControl.snafu = lib.snafu.Snafu(args.quiet, args.isolation)
 		self.snafu.activate(args.file, "lambda")
-		snafu.setuploggers(args.logger)
+		self.snafu.setuploggers(args.logger)
 
 		if args.quiet:
 			log = logging.getLogger("werkzeug")

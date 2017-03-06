@@ -2,6 +2,7 @@
 
 import sqlite3
 import os
+import configparser
 
 def log(source, function, duration, success):
 	logurl = "/tmp/snafu.sqlite"
@@ -18,6 +19,6 @@ def log(source, function, duration, success):
 	c = conn.cursor()
 	if init:
 		c.execute("CREATE TABLE log (source text, function text, duration real, success bool)")
-	c.execute("INSERT INTO log (source, function, duration, success) VALUES ('{}', '{}', {}, {})".format(source, function, duration, success))
+	c.execute("INSERT INTO log (source, function, duration, success) VALUES ('{}', '{}', {}, '{}')".format(source, function, duration, success))
 	conn.commit()
 	conn.close()
