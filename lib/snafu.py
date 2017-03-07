@@ -75,6 +75,9 @@ class Snafu:
 		self.isolation = isolation
 
 	def setuploggers(self, loggers):
+		if "none" in loggers:
+			return
+
 		if not self.quiet:
 			for logger in loggers:
 				print("+ logger:", logger)
@@ -264,13 +267,13 @@ class SnafuRunner:
 	def add_common_arguments(parser):
 		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
-		parser.add_argument("-l", "--logger", help="function loggers", choices=["csv", "sqlite"], default=["csv"], nargs="+")
+		parser.add_argument("-l", "--logger", help="function loggers; 'csv' by default", choices=["csv", "sqlite", "none"], default=["csv"], nargs="+")
 
 	def __init__(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service")
 		SnafuRunner.add_common_arguments(parser)
 		parser.add_argument("-c", "--convention", help="method call convention", choices=["any", "lambda"], default="any")
-		parser.add_argument("-C", "--connector", help="function connectors", choices=["cli", "web", "messaging", "filesystem"], default=["cli"], nargs="+")
+		parser.add_argument("-C", "--connector", help="function connectors; 'cli' by default", choices=["cli", "web", "messaging", "filesystem"], default=["cli"], nargs="+")
 		parser.add_argument("-x", "--execute", help="execute a single function")
 		args = parser.parse_args()
 

@@ -11,6 +11,7 @@ import subprocess
 import glob
 import lib.snafu
 import logging
+import importlib
 
 try:
 	import setproctitle
@@ -95,6 +96,7 @@ class ControlUtil:
 class SnafuControl:
 	app = flask.Flask("snafu-control")
 	snafu = None
+	authenticatormods = []
 
 	def __init__(self):
 		pass
@@ -182,6 +184,11 @@ class SnafuControl:
 
 	@app.route("/2015-03-31/functions/<function>/invocations", methods=["POST"])
 	def invoke(function):
+		auth = SnafuControl.authorise()
+		if not auth:
+			err = json.dumps({"errorMessage": "NotAuthenticated"})
+			return err, 501
+
 		dataargs = {}
 		data = flask.request.data.decode("utf-8")
 		if data:
@@ -200,10 +207,37 @@ class SnafuControl:
 	def notfound(error):
 		return "Invalid request.", 404
 
+	def authorise():
+		if len(SnafuControl.authenticatormods) == 0:
+			return True
+
+		for authenticatormod in SnafuControl.authenticatormods:
+			auth = authenticatormod.authorise(flask.request)
+			if auth:
+				if not SnafuControl.snafu.quiet:
+					print("Authorised: {}".format(auth))
+				return True
+
+		return False
+
+	def setupauthenticators(self, authenticators, quiet=False):
+		if "none" in authenticators:
+			return
+
+		if not quiet:
+			for authenticator in authenticators:
+				print("+ authenticator:", authenticator)
+
+		SnafuControl.authenticatormods = []
+		for authenticator in authenticators:
+			mod = importlib.import_module("authenticators." + authenticator)
+			SnafuControl.authenticatormods.append(mod)
+
 	def run(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service - Control Plane")
 		lib.snafu.SnafuRunner.add_common_arguments(parser)
 		parser.add_argument("-i", "--isolation", help="isolate stateful function instances", action="store_true")
+		parser.add_argument("-a", "--authenticator", help="function authenticators; 'none' by default", choices=["aws", "none"], default=["none"], nargs="+")
 		args = parser.parse_args()
 
 		if not args.file:
@@ -213,6 +247,7 @@ class SnafuControl:
 		SnafuControl.snafu = lib.snafu.Snafu(args.quiet, args.isolation)
 		self.snafu.activate(args.file, "lambda")
 		self.snafu.setuploggers(args.logger)
+		self.setupauthenticators(args.authenticator, args.quiet)
 
 		if args.quiet:
 			log = logging.getLogger("werkzeug")
