@@ -11,16 +11,17 @@ instance) and in exposure of functions.
 
 Functions are read from specified Python source files. If no directory
 is specified, 'functions' with some sample functions as well as
-'functions-local' for user-imported functions are scanned.
+'functions-local' for user-imported functions are scanned. The set of
+exported functions consists of all of them (convention name: any) or
+just one pre-defined function by default named 'lambda_handler' with
+specific arguments, for compatibility with AWS Lambda's Python 2.7
+runtime (convention name: 'lambda').
 
-The set of exported functions consists of all of them (convention name:
-any) or just one pre-defined function by default named 'lambda_handler'
-with specific arguments, for compatibility with AWS Lambda's Python 2.7
-runtime (convention name: 'lambda'). Functions are invoked through
-connectors, for instance HTTP requests or interactive command-line input
-or both at the same time. They correspond roughly to Lambda triggers.
-The invocations are recorded in loggers, for instance CSV files. All
-connectors and loggers are described below.
+Functions are invoked through connectors, for instance HTTP requests or
+interactive command-line input or both at the same time. They correspond
+roughly to Lambda triggers. The invocations are recorded in loggers, for
+instance CSV files. They are furthermore checked against authenticators.
+All connectors and loggers and authenticators are described below.
 
 The utility script 'snafu-import' exists to slurp Lambda functions and
 configurations for execution with Snafu. Configuration support is
@@ -61,8 +62,8 @@ runs on http://localhost:10000/). It is highly recommended to add
 
 % ./snafu-control [-h]
 
-Connectors
-----------
+Connectors (only in snafu)
+--------------------------
 * cli (interactive function name choice; payload asked or read from
   stdin)
 * web (function name chosen via URL path; payload via HTTP POST)
@@ -73,6 +74,12 @@ Loggers
 -------
 * csv
 * sqlite
+* (none)
+
+Authenticators (only in snafu-control)
+--------------------------------------
+* aws (AWS4 signature algorithm)
+* (none)
 
 Docker container
 ----------------
