@@ -128,13 +128,20 @@ class SnafuControl:
 		data = flask.request.data.decode("utf-8")
 		config = json.loads(data)
 		functionname = config["FunctionName"]
+
+		if auth[1]:
+			lib.snafu.SnafuImport.functiondir = "functions-tenants/{}/{}".format(auth[1], functionname)
+		else:
+			lib.snafu.SnafuImport.functiondir = "functions-local/{}".format(functionname)
+
 		try:
-			os.makedirs("functions-local/{}".format(functionname))
+			#os.makedirs(lib.snafu.SnafuImport.functiondir)
+			lib.snafu.SnafuImport.prepare()
 		except:
 			err = json.dumps({"errorMessage": "ResourceConflictException"})
 			return err, 501
 
-		codezip = "functions-local/{}.zip".format(functionname)
+		codezip = "{}.zip".format(lib.snafu.SnafuImport.functiondir)
 		f = open(codezip, "wb")
 		f.write(base64.b64decode(config["Code"]["ZipFile"]))
 		f.close()
@@ -142,7 +149,7 @@ class SnafuControl:
 		del config["Code"]
 		### TODO: extend configuration
 
-		lib.snafu.SnafuImport.prepare()
+		#lib.snafu.SnafuImport.prepare()
 		lib.snafu.SnafuImport.importfunction(functionname, codezip, config, convert=True)
 
 		return json.dumps(config)
@@ -189,7 +196,12 @@ class SnafuControl:
 			data = flask.request.data.decode("utf-8")
 			update = json.loads(data)
 
-			codezip = "functions-local/{}.zip".format(function)
+			if auth[1]:
+				lib.snafu.SnafuImport.functiondir = "functions-tenants/{}/{}".format(auth[1], function)
+			else:
+				lib.snafu.SnafuImport.functiondir = "functions-local/{}".format(function)
+
+			codezip = "{}.zip".format(lib.snafu.SnafuImport.functiondir)
 			f = open(codezip, "wb")
 			f.write(base64.b64decode(update["ZipFile"]))
 			f.close()
@@ -264,14 +276,14 @@ class SnafuControl:
 
 	def authorise():
 		if len(SnafuControl.authenticatormods) == 0:
-			return True
+			return True, None
 
 		for authenticatormod in SnafuControl.authenticatormods:
 			auth = authenticatormod.authorise(flask.request)
 			if auth:
 				if not SnafuControl.snafu.quiet:
 					print("Authorised: {}".format(auth))
-				return True
+				return True, auth
 
 		return False
 
@@ -295,12 +307,15 @@ class SnafuControl:
 		parser.add_argument("-a", "--authenticator", help="function authenticators; 'none' by default", choices=["aws", "none"], default=["none"], nargs="+")
 		args = parser.parse_args()
 
+		ignore = False
 		if not args.file:
 			args.file.append("functions")
 			args.file.append("functions-local")
+			args.file.append("functions-tenants")
+			ignore = True
 
 		SnafuControl.snafu = lib.snafu.Snafu(args.quiet, args.isolation)
-		self.snafu.activate(args.file, "lambda")
+		self.snafu.activate(args.file, "lambda", ignore=ignore)
 		self.snafu.setuploggers(args.logger)
 		self.setupauthenticators(args.authenticator, args.quiet)
 

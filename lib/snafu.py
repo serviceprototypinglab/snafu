@@ -31,13 +31,16 @@ class SnafuFunctionSource:
 			self.checksum = base64.b64encode(hashlib.sha256(bytes(self.content, "utf-8")).digest()).decode("utf-8")
 
 class SnafuImport:
-	functiondir = "functions-local"
+	functiondir = None
 
 	def prepare():
+		if not SnafuImport.functiondir:
+			SnafuImport.functiondir = "functions-local"
 		os.makedirs(SnafuImport.functiondir, exist_ok=True)
 
 	def importfunction(funcname, codezip, config, convert=False):
-		funcdir = os.path.join(SnafuImport.functiondir, funcname)
+		#funcdir = os.path.join(SnafuImport.functiondir, funcname)
+		funcdir = SnafuImport.functiondir
 		if codezip:
 			os.makedirs(funcdir, exist_ok=True)
 			subprocess.run("cd {} && unzip -o -q ../{}".format(funcdir, os.path.basename(codezip)), shell=True)
@@ -66,8 +69,11 @@ class SnafuContext:
 		self.function_version = None
 		self.memory_limit_in_mb = 128
 
+		self.timer = time.time()
+		self.timelimit = 60
+
 	def get_remaining_time_in_millis(self):
-		return 999999
+		return self.timelimit - (time.time() - self.timer)
 
 class Snafu:
 	def __init__(self, quiet=False, isolation=False):
@@ -91,6 +97,12 @@ class Snafu:
 			mod = importlib.import_module("loggers." + logger)
 			self.loggermods.append(mod)
 
+	def alert(self, s):
+		col_on = "\x1b[31m\x1b[3m"
+		col_off = "\x1b[0m"
+
+		print(col_on + "{}".format(s) + col_off, file=sys.stderr)
+
 	def info(self, s):
 		if self.quiet and not self.interactive:
 			return
@@ -110,19 +122,19 @@ class Snafu:
 		if funcname in self.functions:
 			funcs = self.functions[funcname]
 		else:
-			print("Error: {} is not a function.".format(funcname), file=sys.stderr)
+			self.alert("Error: {} is not a function.".format(funcname))
 			return
 		#if not sourcename:
 		#	if len(funcs) == 1:
 		#		func = list(funcs.values())[0]
 		#	else:
-		#		print("Error: {} is ambiguous; qualifiers: {}.".format(funcname, list(funcs.keys())), file=sys.stderr)
+		#		self.alert("Error: {} is ambiguous; qualifiers: {}.".format(funcname, list(funcs.keys())))
 		#		return
 		#else:
 		#	if sourcename in funcs:
 		#		func = funcs[sourcename]
 		#	else:
-		#		print("Error: {}.{} is not a function.".format(sourcename, funcname), file=sys.stderr)
+		#		self.alert("Error: {}.{} is not a function.".format(sourcename, funcname))
 		#		return
 
 		func, config, sourceinfos = funcs
@@ -134,8 +146,9 @@ class Snafu:
 		self.info("function:{}".format(funcname))
 		if config:
 			if "Environment" in config:
-				self.info("config:environment")
 				envvars = config["Environment"]["Variables"]
+				keys = ",".join(envvars.keys())
+				self.info("config:environment:{}".format(keys))
 				for envvar in envvars:
 					os.environ[envvar] = envvars[envvar]
 
@@ -158,7 +171,7 @@ class Snafu:
 						data = sys.stdin.read()
 					funcargs.append(data)
 				else:
-					print("Data for argument {} needed but not supplied.".format(wantedarg))
+					self.alert("Error: Data for argument {} needed but not supplied.".format(wantedarg))
 					return
 
 		stime = time.time()
@@ -255,7 +268,7 @@ class Snafu:
 					if not self.quiet:
 						print("  skip function {}.{}".format(sourcename, node.name))
 
-	def activate(self, sources, convention):
+	def activate(self, sources, convention, ignore=False):
 		for source in sources:
 			if os.path.isfile(source):
 				if source.endswith(".py"):
@@ -265,7 +278,8 @@ class Snafu:
 				entries = [os.path.join(source, entry.name) for entry in os.scandir(source) if not entry.name.startswith(".")]
 				self.activate(entries, convention)
 			else:
-				print("Warning: {} is not readable, skipping.".format(source), file=sys.stderr)
+				if not ignore:
+					print("Warning: {} is not readable, skipping.".format(source), file=sys.stderr)
 
 class SnafuRunner:
 	def add_common_arguments(parser):
@@ -281,12 +295,14 @@ class SnafuRunner:
 		parser.add_argument("-x", "--execute", help="execute a single function")
 		args = parser.parse_args()
 
+		ignore = False
 		if not args.file:
 			args.file.append("functions")
 			args.file.append("functions-local")
+			ignore = True
 
 		snafu = Snafu(args.quiet, False)
-		snafu.activate(args.file, args.convention)
+		snafu.activate(args.file, args.convention, ignore=ignore)
 		snafu.setuploggers(args.logger)
 
 		if args.execute:
@@ -294,5 +310,13 @@ class SnafuRunner:
 		else:
 			try:
 				snafu.connect(args.connector)
-			except:
+			except Exception as e:
+				print()
+				if str(e) != "":
+					print("Terminated unexpectedly.")
+					snafu.alert("[{}]".format(e))
+				else:
+					print("Terminated.")
+			except KeyboardInterrupt:
+				print()
 				print("Terminated.")
