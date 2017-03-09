@@ -3,12 +3,24 @@ authentication, making Snafu suitable primarily for experiments,
 prototyping and internal use. Future versions will offer authentication
 through 'snafu-control' and perhaps through the web connector as well.
 
+ -> snafu-control part has been solved
+
 Functions implemented in Python 2 and in other programming languages are
 currently not supported. This may be changed by the introduction of
 external launchers, at the cost of higher call overhead.
 
+The isolation level offered with --isolation is weak. A medium-level
+protection could be achieved by running snafu slaves in separate
+containers with mounted tenant function directories.
+
 Some clients (notably awscli) close connections and open new ones while
 functions are still running without any chance to report back their
-results. Snafu would have to clean up the sockets in CLOSE_WAIT state.
+results. Snafu would have to clean up the sockets in CLOSE_WAIT state
+immediately to avoid hitting the fd limit.
+
+Some rather often used methods are not yet implemented in snafu-control,
+notably update-function-*. Likewise, versioning is not yet supported.
+
+ -> update-* is now implemented
 
 Asynchronous invocations are not supported at all at the moment.

@@ -38,21 +38,25 @@ class SnafuImport:
 
 	def importfunction(funcname, codezip, config, convert=False):
 		funcdir = os.path.join(SnafuImport.functiondir, funcname)
-		os.makedirs(funcdir, exist_ok=True)
-		subprocess.run("cd {} && unzip -q ../{}".format(funcdir, os.path.basename(codezip)), shell=True)
+		if codezip:
+			os.makedirs(funcdir, exist_ok=True)
+			subprocess.run("cd {} && unzip -o -q ../{}".format(funcdir, os.path.basename(codezip)), shell=True)
 		codefiles = glob.glob(os.path.join(funcdir, "*.py"))
 		codefile = codefiles[0]
 		oldcodefile = None
-		if convert and config["Runtime"] == "python2.7":
-			oldcodefile = codefile.replace(".py", ".py2")
-			shutil.copyfile(codefile, oldcodefile)
-			subprocess.run("2to3 --no-diffs -nw {} 2>/dev/null".format(codefile), shell=True)
-			config["Runtime"] = "python3"
+		if codezip:
+			if convert and config["Runtime"] == "python2.7":
+				oldcodefile = codefile.replace(".py", ".py2")
+				shutil.copyfile(codefile, oldcodefile)
+				subprocess.run("2to3 --no-diffs -nw {} 2>/dev/null".format(codefile), shell=True)
+				config["Runtime"] = "python3"
+
 		configfile = os.path.join(funcdir, os.path.basename(codefile).split(".")[0] + ".config")
-		#filename = config["Handler"].split(".")[0]
-		#configfile = "functions-local/{}/{}.config".format(functionname, filename)
-		f = open(configfile, "w")
-		json.dump(config, f)
+		if config:
+			#filename = config["Handler"].split(".")[0]
+			#configfile = "functions-local/{}/{}.config".format(functionname, filename)
+			f = open(configfile, "w")
+			json.dump(config, f)
 
 		return codefile, configfile, oldcodefile
 

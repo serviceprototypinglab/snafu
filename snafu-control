@@ -48,8 +48,8 @@ publish-version
 remove-permission
 update-alias
 update-event-source-mapping
-update-function-code
-update-function-configuration
+* update-function-code
+* update-function-configuration
 """
 
 class ControlUtil:
@@ -59,7 +59,6 @@ class ControlUtil:
 		fmap = {}
 		env = {}
 		envvars = {}
-		#envvars["TEST"] = "XXX"
 		if envvars:
 			env["Variables"] = envvars
 		vpc = {}
@@ -93,6 +92,10 @@ class ControlUtil:
 			fmap = ControlUtil.createconfig(function, sourceinfos)
 		return fmap
 
+	def notauthorised():
+		err = json.dumps({"errorMessage": "NotAuthenticated"})
+		return err, 501
+
 class SnafuControl:
 	app = flask.Flask("snafu-control")
 	snafu = None
@@ -118,6 +121,10 @@ class SnafuControl:
 
 	@app.route("/2015-03-31/functions", methods=["POST"])
 	def createfunction():
+		auth = SnafuControl.authorise()
+		if not auth:
+			return ControlUtil.notauthorised()
+
 		data = flask.request.data.decode("utf-8")
 		config = json.loads(data)
 		functionname = config["FunctionName"]
@@ -142,6 +149,10 @@ class SnafuControl:
 
 	@app.route("/2015-03-31/functions/")
 	def listfunctions():
+		auth = SnafuControl.authorise()
+		if not auth:
+			return ControlUtil.notauthorised()
+
 		f = []
 		for function in SnafuControl.snafu.functions:
 			fmap = ControlUtil.functionconfiguration(function)
@@ -152,6 +163,10 @@ class SnafuControl:
 
 	@app.route("/2015-03-31/functions/<function>")
 	def getfunction(function):
+		auth = SnafuControl.authorise()
+		if not auth:
+			return ControlUtil.notauthorised()
+
 		if function in SnafuControl.snafu.functions:
 			funccode = {}
 			funccode["RepositoryType"] = "snafu"
@@ -164,16 +179,57 @@ class SnafuControl:
 			err = json.dumps({"errorMessage": "ResourceNotFoundException"})
 			return err, 501
 
-	@app.route("/2015-03-31/functions/<function>/configuration")
-	def getfunctionconfiguration(function):
+	@app.route("/2015-03-31/functions/<function>/code", methods=["PUT"])
+	def putfunctioncode(function):
+		auth = SnafuControl.authorise()
+		if not auth:
+			return ControlUtil.notauthorised()
+
 		if function in SnafuControl.snafu.functions:
-			return json.dumps(ControlUtil.functionconfiguration(function))
+			data = flask.request.data.decode("utf-8")
+			update = json.loads(data)
+
+			codezip = "functions-local/{}.zip".format(function)
+			f = open(codezip, "wb")
+			f.write(base64.b64decode(update["ZipFile"]))
+			f.close()
+
+			lib.snafu.SnafuImport.importfunction(function, codezip, None)
+			func, config, sourceinfos = SnafuControl.snafu.functions[function]
+			#fmap = ControlUtil.functionconfiguration(function)
+			# FIXME: update config, sourceinfos.checksum, sourceinfos.size
+			return json.dumps(config)
+		else:
+			err = json.dumps({"errorMessage": "ResourceNotFoundException"})
+			return err, 501
+
+	@app.route("/2015-03-31/functions/<function>/configuration", methods=["GET", "PUT"])
+	def getputfunctionconfiguration(function):
+		auth = SnafuControl.authorise()
+		if not auth:
+			return ControlUtil.notauthorised()
+
+		if function in SnafuControl.snafu.functions:
+			if flask.request.method == "GET":
+				return json.dumps(ControlUtil.functionconfiguration(function))
+			elif flask.request.method == "PUT":
+				data = flask.request.data.decode("utf-8")
+				update = json.loads(data)
+				fmap = ControlUtil.functionconfiguration(function)
+				for key in update:
+					fmap[key] = update[key]
+				lib.snafu.SnafuImport.importfunction(function, None, fmap)
+				return json.dumps(fmap)
 		else:
 			err = json.dumps({"errorMessage": "ResourceNotFoundException"})
 			return err, 501
 
 	@app.route("/2015-03-31/functions/<function>/policy", methods=["POST"])
 	def addpermission(function):
+		auth = SnafuControl.authorise()
+		if not auth:
+			return ControlUtil.notauthorised()
+
 		data = flask.request.data.decode("utf-8")
 		"""
 		{"Action": "lambda:InvokeFunction", "StatementId": "Y_reverse", "Principal": "X"}
@@ -186,8 +242,7 @@ class SnafuControl:
 	def invoke(function):
 		auth = SnafuControl.authorise()
 		if not auth:
-			err = json.dumps({"errorMessage": "NotAuthenticated"})
-			return err, 501
+			return ControlUtil.notauthorised()
 
 		dataargs = {}
 		data = flask.request.data.decode("utf-8")
