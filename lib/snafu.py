@@ -76,13 +76,24 @@ class SnafuContext:
 		return self.timelimit - (time.time() - self.timer)
 
 class Snafu:
-	def __init__(self, quiet=False, isolation=False):
+	def __init__(self, quiet=False):
 		self.functions = {}
 		self.quiet = quiet
 		self.connectormods = []
 		self.loggermods = []
 		self.interactive = False
-		self.isolation = isolation
+		#self.isolation = isolation
+		self.executormods = []
+
+	def setupexecutors(self, executors):
+		if not self.quiet:
+			for executor in executors:
+				print("+ executor:", executor)
+
+		self.executormods = []
+		for executor in executors:
+			mod = importlib.import_module("executors." + executor)
+			self.executormods.append(mod)
 
 	def setuploggers(self, loggers):
 		if "none" in loggers:
@@ -139,18 +150,14 @@ class Snafu:
 
 		func, config, sourceinfos = funcs
 
-		if self.isolation:
-			loader = importlib.machinery.SourceFileLoader(os.path.basename(sourceinfos.source), sourceinfos.source)
-			loader.exec_module(sourceinfos.module)
-
 		self.info("function:{}".format(funcname))
+
+		envvars = {}
 		if config:
 			if "Environment" in config:
 				envvars = config["Environment"]["Variables"]
 				keys = ",".join(envvars.keys())
 				self.info("config:environment:{}".format(keys))
-				for envvar in envvars:
-					os.environ[envvar] = envvars[envvar]
 
 		args = inspect.getargspec(func)
 		wantedargs = args[0]
@@ -175,21 +182,21 @@ class Snafu:
 					return
 
 		stime = time.time()
-		try:
-			res = func(*funcargs)
-			success = True
-		except:
-			self.info("exception!")
-			res = None
-			success = False
-		self.info("result:{}".format(res))
-		dtime = (time.time() - stime) * 1000
+		dtime, success, res = self.executormods[0].execute(func, funcargs, envvars, sourceinfos)
+		otime = (time.time() - stime) * 1000
+
+		if success:
+			self.info("result:{}".format(res))
+		else:
+			self.alert("exception! [{}]".format(e))
 		self.info("time:{:1.3f}ms".format(dtime))
+		self.info("overalltime:{:1.3f}ms".format(otime))
 
 		for loggermod in self.loggermods:
 			loggermod.log(sourcename or "", funcname, dtime, success)
 
 		return res
+
 
 	def connect(self, connectors):
 		if not self.quiet:
@@ -286,6 +293,7 @@ class SnafuRunner:
 		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
 		parser.add_argument("-l", "--logger", help="function loggers; 'csv' by default", choices=["csv", "sqlite", "none"], default=["csv"], nargs="+")
+		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless"], default=["inmemory"])
 
 	def __init__(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service")
@@ -301,9 +309,10 @@ class SnafuRunner:
 			args.file.append("functions-local")
 			ignore = True
 
-		snafu = Snafu(args.quiet, False)
+		snafu = Snafu(args.quiet)
 		snafu.activate(args.file, args.convention, ignore=ignore)
 		snafu.setuploggers(args.logger)
+		snafu.setupexecutors([args.executor])
 
 		if args.execute:
 			snafu.execute(args.execute)

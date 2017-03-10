@@ -303,7 +303,7 @@ class SnafuControl:
 	def run(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service - Control Plane")
 		lib.snafu.SnafuRunner.add_common_arguments(parser)
-		parser.add_argument("-i", "--isolation", help="isolate stateful function instances", action="store_true")
+		#parser.add_argument("-i", "--isolation", help="isolate stateful function instances", action="store_true")
 		parser.add_argument("-a", "--authenticator", help="function authenticators; 'none' by default", choices=["aws", "none"], default=["none"], nargs="+")
 		args = parser.parse_args()
 
@@ -314,9 +314,10 @@ class SnafuControl:
 			args.file.append("functions-tenants")
 			ignore = True
 
-		SnafuControl.snafu = lib.snafu.Snafu(args.quiet, args.isolation)
+		SnafuControl.snafu = lib.snafu.Snafu(args.quiet)
 		self.snafu.activate(args.file, "lambda", ignore=ignore)
 		self.snafu.setuploggers(args.logger)
+		self.snafu.setupexecutors([args.executor])
 		self.setupauthenticators(args.authenticator, args.quiet)
 
 		if args.quiet:

@@ -21,7 +21,8 @@ Functions are invoked through connectors, for instance HTTP requests or
 interactive command-line input or both at the same time. They correspond
 roughly to Lambda triggers. The invocations are recorded in loggers, for
 instance CSV files. They are furthermore checked against authenticators.
-All connectors and loggers and authenticators are described below.
+All connectors, loggers, executors and authenticators are described
+below.
 
 The utility script 'snafu-import' exists to slurp Lambda functions and
 configurations for execution with Snafu. Configuration support is
@@ -76,14 +77,20 @@ Loggers
 * sqlite
 * (none)
 
+Executors
+---------
+* inmemory (fastest, in-memory, only for truly stateless function)
+* inmemstateless (higher isolation level through module reload)
+
 Authenticators (only in snafu-control)
 --------------------------------------
 * aws (AWS4 signature algorithm)
 * (none)
 
-Docker container
-----------------
-A containerised version is made available.
+Packaged Snafu
+--------------
+A containerised version is made available for running Snafu in a Docker
+environment.
 
 % docker run -ti jszhaw/snafu
 
