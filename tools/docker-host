@@ -1,0 +1,12 @@
+Launch master:
+
+mkdir -p /tmp/accounts
+[sudo] docker run -ti -v /tmp/accounts:/root jszhaw/snafu /opt/snafu-accounts --add --key-id X --secret-access-key X
+
+[sudo] docker run --read-only -ti -p 10000:10000 -v /var/run/docker.sock:/var/run/docker.sock -v /tmp/accounts:/root jszhaw/snafu /bin/bash /opt/snafu-control.sh -a aws -e docker
+
+(Note: The use of /tmp is only suitable for testing.)
+
+Launch slave:
+
+Snafu will do this automatically through the Docker executor.
