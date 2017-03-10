@@ -77,10 +77,12 @@ Loggers
 * sqlite
 * (none)
 
-Executors
----------
+Executors (partially only in snafu-control)
+-------------------------------------------
 * inmemory (fastest, in-memory, only for truly stateless function)
 * inmemstateless (higher isolation level through module reload)
+* proxy (redirect to another fixed or per-tenant instance of Snafu)
+* docker (redirect to a dynamically created per-tenant instance)
 
 Authenticators (only in snafu-control)
 --------------------------------------

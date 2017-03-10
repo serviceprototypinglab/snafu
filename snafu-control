@@ -98,6 +98,7 @@ class ControlUtil:
 
 class SnafuControl:
 	app = flask.Flask("snafu-control")
+	port = None
 	snafu = None
 	authenticatormods = []
 
@@ -177,7 +178,7 @@ class SnafuControl:
 		if function in SnafuControl.snafu.functions:
 			funccode = {}
 			funccode["RepositoryType"] = "snafu"
-			funccode["Location"] = "http://localhost:10000/function-download/{}.zip".format(function)
+			funccode["Location"] = "http://localhost:{}/function-download/{}.zip".format(SnafuControl.port, function)
 			func = {}
 			func["Code"] = funccode
 			func["Configuration"] = ControlUtil.functionconfiguration(function)
@@ -256,12 +257,16 @@ class SnafuControl:
 		if not auth:
 			return ControlUtil.notauthorised()
 
-		dataargs = {}
-		data = flask.request.data.decode("utf-8")
-		if data:
-			dataargs["event"] = json.loads(data)
+		if SnafuControl.snafu.executormods[0].__name__ == "executors.docker":
+			response = SnafuControl.snafu.executormods[0].executecontrol(flask.request, auth[1])
+		else:
+			dataargs = {}
+			data = flask.request.data.decode("utf-8")
+			if data:
+				dataargs["event"] = json.loads(data)
 
-		response = SnafuControl.snafu.execute(function, **dataargs)
+			response = SnafuControl.snafu.execute(function, **dataargs)
+
 		if not response:
 			#flask.abort(500)
 			err = json.dumps({"errorMessage": "ServiceException"})
@@ -305,6 +310,13 @@ class SnafuControl:
 		lib.snafu.SnafuRunner.add_common_arguments(parser)
 		#parser.add_argument("-i", "--isolation", help="isolate stateful function instances", action="store_true")
 		parser.add_argument("-a", "--authenticator", help="function authenticators; 'none' by default", choices=["aws", "none"], default=["none"], nargs="+")
+		parser.add_argument("-p", "--port", help="HTTP port number", type=int, default=10000)
+
+		for action in parser._actions:
+			if action.dest == "executor":
+				action.choices.append("docker")
+				action.choices.append("proxy")
+
 		args = parser.parse_args()
 
 		ignore = False
@@ -315,6 +327,7 @@ class SnafuControl:
 			ignore = True
 
 		SnafuControl.snafu = lib.snafu.Snafu(args.quiet)
+		SnafuControl.port = args.port
 		self.snafu.activate(args.file, "lambda", ignore=ignore)
 		self.snafu.setuploggers(args.logger)
 		self.snafu.setupexecutors([args.executor])
@@ -324,7 +337,7 @@ class SnafuControl:
 			log = logging.getLogger("werkzeug")
 			log.setLevel(logging.ERROR)
 
-		self.app.run(host="0.0.0.0", port=10000, threaded=True)
+		self.app.run(host="0.0.0.0", port=args.port, threaded=True)
 
 sc = SnafuControl()
 sc.run()
