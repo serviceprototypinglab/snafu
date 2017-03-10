@@ -12,6 +12,8 @@ import glob
 import lib.snafu
 import logging
 import importlib
+import threading
+import time
 
 try:
 	import setproctitle
@@ -95,6 +97,44 @@ class ControlUtil:
 	def notauthorised():
 		err = json.dumps({"errorMessage": "NotAuthenticated"})
 		return err, 501
+
+	def reaperthread(debug=False):
+		if debug:
+			print("REAPER init")
+		while True:
+			time.sleep(1)
+			if debug:
+				print("REAPER reap")
+			fds = glob.glob("/proc/{}/fd/*".format(os.getpid()))
+			sockets = {}
+			for fd in fds:
+				rp = os.path.realpath(fd)
+				if os.path.islink(fd) and not os.path.exists(rp):
+					socket = int(os.path.basename(fd))
+					if debug:
+						print("+", socket, rp)
+					rp = os.path.basename(rp).replace("socket:[", "").replace("]", "")
+					sockets[rp] = socket
+			f = open("/proc/net/tcp")
+			tcp = f.readlines()
+			for line in tcp:
+				line = [x for x in line.split(" ") if x]
+				st = line[3]
+				inode = line[9]
+				if inode in sockets:
+					if debug:
+						print("?", inode, st)
+					if st == "08":
+						if debug:
+							print("! close", sockets[inode])
+						else:
+							print("Reap dangling connection {}".format(sockets[inode]))
+						os.close(sockets[inode])
+
+	def reaper():
+		t = threading.Thread(target=ControlUtil.reaperthread, args=(False,))
+		t.setDaemon(True)
+		t.start()
 
 class SnafuControl:
 	app = flask.Flask("snafu-control")
@@ -311,6 +351,7 @@ class SnafuControl:
 		#parser.add_argument("-i", "--isolation", help="isolate stateful function instances", action="store_true")
 		parser.add_argument("-a", "--authenticator", help="function authenticators; 'none' by default", choices=["aws", "none"], default=["none"], nargs="+")
 		parser.add_argument("-p", "--port", help="HTTP port number", type=int, default=10000)
+		parser.add_argument("-r", "--reaper", help="closed connection reaper", action="store_true")
 
 		for action in parser._actions:
 			if action.dest == "executor":
@@ -336,6 +377,10 @@ class SnafuControl:
 		if args.quiet:
 			log = logging.getLogger("werkzeug")
 			log.setLevel(logging.ERROR)
+
+		if args.reaper:
+			print("+ reaper")
+			ControlUtil.reaper()
 
 		self.app.run(host="0.0.0.0", port=args.port, threaded=True)
 
