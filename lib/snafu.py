@@ -84,6 +84,7 @@ class Snafu:
 		self.interactive = False
 		#self.isolation = isolation
 		self.executormods = []
+		self.functionconnectors = {}
 
 	def setupexecutors(self, executors):
 		if not self.quiet:
@@ -197,7 +198,6 @@ class Snafu:
 
 		return res
 
-
 	def connect(self, connectors):
 		if not self.quiet:
 			for connector in connectors:
@@ -213,6 +213,13 @@ class Snafu:
 		for connectormod in connectormods:
 			if "init" in dir(connectormod):
 				connectormod.init(self.execute)
+
+		for function in self.functionconnectors:
+			if not self.quiet:
+				print("+ connector for function", function)
+			for connectormod in connectormods:
+				if "init" in dir(connectormod):
+					connectormod.init(self.execute, function, self.functionconnectors[function])
 
 		self.connectormods = connectormods
 
@@ -237,6 +244,7 @@ class Snafu:
 			return
 		if not self.quiet:
 			print("» module:", source)
+
 		handler = None
 		config = None
 		configname = source.split(".")[0] + ".config"
@@ -247,6 +255,14 @@ class Snafu:
 			if config:
 				if "Handler" in config:
 					handler = config["Handler"]
+
+		connectorconfig = None
+		connectorconfigname = source.split(".")[0] + ".ini"
+		if os.path.isfile(connectorconfigname):
+			if not self.quiet:
+				print("  connectors:", connectorconfigname)
+			connectorconfig = connectorconfigname
+
 		sourcetree = ast.parse(sourcecode)
 		loader = importlib.machinery.SourceFileLoader(os.path.basename(source), source)
 		mod = types.ModuleType(loader.name)
@@ -271,6 +287,8 @@ class Snafu:
 					#	self.functions[node.name] = {}
 					#self.functions[node.name][sourcename] = (func, config, sourceinfos)
 					self.functions[funcname] = (func, config, sourceinfos)
+					if connectorconfig:
+						self.functionconnectors[funcname] = connectorconfig
 				else:
 					if not self.quiet:
 						print("  skip function {}.{}".format(sourcename, node.name))

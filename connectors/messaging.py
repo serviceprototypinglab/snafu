@@ -8,13 +8,21 @@ import configparser
 
 gcb = None
 
-def initinternal():
-	connecturl = "amqp://guest:guest@localhost:5672/"
-	if os.path.isfile("snafu.ini"):
+def initinternal(function, configpath):
+	connecturl = None
+	if not configpath:
+		configpath = "snafu.ini"
+	if not function:
+		function = "snafu"
+	if os.path.isfile(configpath):
 		config = configparser.ConfigParser()
-		config.read("snafu.ini")
-		if "snafu" in config and "connector.messaging" in config["snafu"]:
-			connecturl = config["snafu"]["connector.messaging"]
+		config.read(configpath)
+		if function in config and "connector.messaging" in config[function]:
+			connecturl = config[function]["connector.messaging"]
+
+	if not connecturl:
+		return
+
 	print("(messaging:connecting)")
 	connection = kombu.Connection(connecturl)
 	connection.connect()
@@ -30,13 +38,13 @@ def initinternal():
 		else:
 			print("(messaging:received {})".format(message.payload))
 			message.ack()
-			# FIXME: choose correct function and send back results
-			response = gcb("helloworld.helloworld", event="{}")
+			# FIXME: send back response as AMQP message
+			response = gcb(function, event="{}")
 	queue.close()
 
-def init(cb):
+def init(cb, function=None, configpath=None):
 	global gcb
 	gcb = cb
 
-	t = threading.Thread(target=initinternal, daemon=True)
+	t = threading.Thread(target=initinternal, daemon=True, args=(function, configpath))
 	t.start()

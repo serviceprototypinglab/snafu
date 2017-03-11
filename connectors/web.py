@@ -2,6 +2,8 @@
 
 import flask
 import threading
+import os
+import configparser
 
 app = flask.Flask("snafu")
 
@@ -14,12 +16,24 @@ def invoke(function):
 		flask.abort(500)
 	return response
 
-def initinternal():
-	app.run(host="0.0.0.0", port=8080)
+def initinternal(function, configpath):
+	connectconfig = None
+	if not configpath:
+		configpath = "snafu.ini"
+	if not function:
+		function = "snafu"
+	if os.path.isfile(configpath):
+		config = configparser.ConfigParser()
+		config.read(configpath)
+		if function in config and "connector.web" in config[function]:
+			connectconfig = int(config[function]["connector.web"])
 
-def init(cb):
+	if connectconfig:
+		app.run(host="0.0.0.0", port=connectconfig)
+
+def init(cb, function=None, configpath=None):
 	global gcb
 	gcb = cb
 
-	t = threading.Thread(target=initinternal, daemon=True)
+	t = threading.Thread(target=initinternal, daemon=True, args=(function, configpath))
 	t.start()

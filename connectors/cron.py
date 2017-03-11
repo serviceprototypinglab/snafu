@@ -7,22 +7,26 @@ import configparser
 
 gcb = None
 
-def initinternal():
-	connectconfig = 60
-	if os.path.isfile("snafu.ini"):
+def initinternal(function, configpath):
+	connectconfig = None
+	if not configpath:
+		configpath = "snafu.ini"
+	if not function:
+		function = "snafu"
+	if os.path.isfile(configpath):
 		config = configparser.ConfigParser()
-		config.read("snafu.ini")
-		if "snafu" in config and "connector.cron" in config["snafu"]:
-			connectconfig = int(config["snafu"]["connector.cron"])
+		config.read(configpath)
+		if function in config and "connector.cron" in config[function]:
+			connectconfig = int(config[function]["connector.cron"])
 
-	while True:
-		time.sleep(connectconfig)
-		# FIXME: choose correct function
-		response = gcb("helloworld.helloworld", event="{}")
+	if connectconfig:
+		while True:
+			time.sleep(connectconfig)
+			response = gcb(function, event="{}")
 
-def init(cb):
+def init(cb, function=None, configpath=None):
 	global gcb
 	gcb = cb
 
-	t = threading.Thread(target=initinternal, daemon=True)
+	t = threading.Thread(target=initinternal, daemon=True, args=(function, configpath))
 	t.start()
