@@ -1,5 +1,6 @@
 [snafu]
 connector.messaging = amqp://guest:guest@localhost:5672/
+connector.cron = 60
 logger.sqlite = /tmp/snafu.sqlite
 logger.csv = snafu.csv
 executor.proxy = http://localhost:10001

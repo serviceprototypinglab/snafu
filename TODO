@@ -13,10 +13,14 @@ The isolation level offered with --isolation is weak. A medium-level
 protection could be achieved by running snafu slaves in separate
 containers with mounted tenant function directories.
 
+ -> proxy and docker executors added
+
 Some clients (notably awscli) close connections and open new ones while
 functions are still running without any chance to report back their
 results. Snafu would have to clean up the sockets in CLOSE_WAIT state
 immediately to avoid hitting the fd limit.
+
+ -> reaper mode implemented, but no mapping yet to running threads
 
 Some rather often used methods are not yet implemented in snafu-control,
 notably update-function-*. Likewise, versioning is not yet supported.

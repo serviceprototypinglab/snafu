@@ -1,5 +1,8 @@
 # Snafu: Snake Functions - CSV Logger
 
+import os
+import configparser
+
 def log(source, function, duration, success):
 	logurl = "snafu.csv"
 	if os.path.isfile("snafu.ini"):
