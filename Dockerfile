@@ -1,4 +1,5 @@
 # build >> sudo docker build -t snafu .
+# debug >> sudo docker run -ti snafu bash
 # run   >> sudo docker run -p 10000:10000 -ti snafu
 
 FROM python:3
@@ -11,6 +12,9 @@ RUN apt-get update && apt-get install -y python3-flask python3-requests
 
 RUN echo "deb http://deb.debian.org/debian jessie-backports main" >> /etc/apt/sources.list
 RUN apt-get update && apt-get install -y docker.io
+
+RUN wget -q https://console.appuio.ch/console/extensions/clients/linux/oc -O /usr/bin/oc
+RUN chmod +x /usr/bin/oc
 
 EXPOSE 10000
 
