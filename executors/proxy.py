@@ -10,7 +10,10 @@ def executecontrol(flaskrequest, tenant):
 	if tenant:
 		c = configparser.ConfigParser()
 		try:
-			c.read(os.path.expanduser("~/.snafu-accounts"))
+			accdb = os.path.expanduser("~/.snafu-accounts")
+			if os.getenv("HOME") == "/":
+				accdb = "/root/.snafu-accounts"
+			c.read(accdb)
 		except:
 			return
 		sections = c.sections()

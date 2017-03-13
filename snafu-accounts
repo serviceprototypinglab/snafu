@@ -13,6 +13,8 @@ class SnafuAccounts:
 
 	def addaccount(self, key, secret, endpoint):
 		accdb = os.path.expanduser("~/.snafu-accounts")
+		if os.getenv("HOME") == "/":
+			accdb = "/root/.snafu-accounts"
 		c = configparser.ConfigParser()
 		try:
 			c.read(accdb)
