@@ -4,10 +4,25 @@ import sys
 import os
 import time
 import json
+import base64
+import pickle
+
+class Context:
+	def __init__(self):
+		self.SnafuContext = self
+
+	def __new__(self, x):
+		return x
 
 def execute(filename, func, funcargs, envvars):
 	funcargs = json.loads(funcargs)
 	envvars = json.loads(envvars)
+
+	for i, funcarg in enumerate(funcargs):
+		if funcarg.startswith("pickle:"):
+			sys.modules["lib"] = Context()
+			sys.modules["lib.snafu"] = Context()
+			funcarg = pickle.loads(base64.b64decode(funcarg.split(":")[1]))
 
 	sys.path.append(".")
 	os.chdir(os.path.dirname(filename))

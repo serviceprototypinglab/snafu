@@ -4,8 +4,14 @@
 #import time
 import json
 import subprocess
+import pickle
+import base64
 
 def execute(func, funcargs, envvars, sourceinfos):
+	for i, funcarg in enumerate(funcargs):
+		if "__class__" in dir(funcarg):
+			funcargs[i] = "pickle:" + base64.b64encode(pickle.dumps(funcarg, protocol=2)).decode("utf-8")
+
 	funcargs = json.dumps(funcargs)
 	envvars = json.dumps(envvars)
 
