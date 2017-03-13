@@ -357,6 +357,7 @@ class SnafuControl:
 			if action.dest == "executor":
 				action.choices.append("docker")
 				action.choices.append("proxy")
+				action.choices.append("openshift")
 
 		args = parser.parse_args()
 
