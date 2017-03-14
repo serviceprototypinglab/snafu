@@ -19,7 +19,7 @@ def execute(filename, func, funcargs, envvars):
 	envvars = json.loads(envvars)
 
 	for i, funcarg in enumerate(funcargs):
-		if funcarg.startswith("pickle:"):
+		if type(funcarg) == str and funcarg.startswith("pickle:"):
 			sys.modules["lib"] = Context()
 			sys.modules["lib.snafu"] = Context()
 			funcarg = pickle.loads(base64.b64decode(funcarg.split(":")[1]))
@@ -42,6 +42,6 @@ def execute(filename, func, funcargs, envvars):
 	dtime = (time.time() - stime) * 1000
 
 	#return dtime, success, res
-	return "{} {} {}".format(dtime, success, res)
+	return "{} {} {}".format(dtime, success, "{}".format(res).replace("'", "\""))
 
 print(execute(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]))

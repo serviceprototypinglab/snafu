@@ -189,7 +189,7 @@ class Snafu:
 		if success:
 			self.info("result:{}".format(res))
 		else:
-			self.alert("exception! [{}]".format(e))
+			self.alert("exception! [{}]".format(res))
 		self.info("time:{:1.3f}ms".format(dtime))
 		self.info("overalltime:{:1.3f}ms".format(otime))
 
