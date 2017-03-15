@@ -84,7 +84,7 @@ def execute_internal(func, funcargs, envvars, sourceinfos):
 
 	callid = threading.get_ident()
 	if not callid in firstcall:
-		proc, qerr, qout, r1 = asynccommand("python3 -iu", None, None, None, import_stmt1, wait=False)
+		proc, qerr, qout, r1 = asynccommand("python2 -iu", None, None, None, import_stmt1, wait=False)
 		proc, qerr, qout, r2 = asynccommand(None, proc, qerr, qout, import_stmt2, wait=False)
 		proc, qerr, qout, r3 = asynccommand(None, proc, qerr, qout, import_stmt3, wait=False)
 		firstcall[callid] = proc, qerr, qout
@@ -99,7 +99,7 @@ def execute_internal(func, funcargs, envvars, sourceinfos):
 	#funcargs = json.dumps(funcargs)
 	#envvars = json.dumps(envvars)
 
-	return r4
+	return r4.replace("'", "\"")
 
 def execute(func, funcargs, envvars, sourceinfos):
 	stime = time.time()
