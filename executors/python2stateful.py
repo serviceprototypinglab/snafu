@@ -82,13 +82,14 @@ def execute_internal(func, funcargs, envvars, sourceinfos):
 	funcargsfmt = ",".join(funcargsfmt)
 	exec_stmt = "{}.{}({})".format(module, func.__name__, funcargsfmt)
 
-	if not firstcall:
+	callid = threading.get_ident()
+	if not callid in firstcall:
 		proc, qerr, qout, r1 = asynccommand("python3 -iu", None, None, None, import_stmt1, wait=False)
 		proc, qerr, qout, r2 = asynccommand(None, proc, qerr, qout, import_stmt2, wait=False)
 		proc, qerr, qout, r3 = asynccommand(None, proc, qerr, qout, import_stmt3, wait=False)
-		firstcall = {proc, qerr, qout}
+		firstcall[callid] = proc, qerr, qout
 	else:
-		proc, qerr, qout = firstcall
+		proc, qerr, qout = firstcall[callid]
 	proc, qerr, qout, r4 = asynccommand(None, proc, qerr, qout, exec_stmt)
 
 	#for i, funcarg in enumerate(funcargs):
@@ -102,6 +103,7 @@ def execute_internal(func, funcargs, envvars, sourceinfos):
 
 def execute(func, funcargs, envvars, sourceinfos):
 	stime = time.time()
+
 	try:
 		res = execute_internal(func, funcargs, envvars, sourceinfos)
 		success = True
