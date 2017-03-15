@@ -44,7 +44,7 @@ def asynccommand(command, commandprocess, qerr, qout, inputline, wait=True):
 	while True:
 		both_empty = True
 		try:
-			line = qout.get(timeout=0)
+			line = qout.get(timeout=0.01)
 		except queue.Empty:
 			pass
 		else:
@@ -52,18 +52,18 @@ def asynccommand(command, commandprocess, qerr, qout, inputline, wait=True):
 			both_empty = False
 			results += line
 		try:
-			line = qerr.get(timeout=0)
+			line = qerr.get(timeout=0.01)
 		except queue.Empty:
 			pass
 		else:
-			had_output = True
+			#had_output = True
 			both_empty = False
-			results += "(err)" + line
+			#results += "(err)" + line
 		if had_output and both_empty:
 			return commandprocess, qerr, qout, results
-		counter += 1
-		if counter > 100000:
-			return commandprocess, qerr, qout, results
+		#counter += 1
+		#if counter > 100:
+		#	return commandprocess, qerr, qout, results
 
 def execute_internal(func, funcargs, envvars, sourceinfos):
 	global firstcall
@@ -83,8 +83,8 @@ def execute_internal(func, funcargs, envvars, sourceinfos):
 	exec_stmt = "{}.{}({})".format(module, func.__name__, funcargsfmt)
 
 	if not firstcall:
-		proc, qerr, qout, r1 = asynccommand("python3 -iu", None, None, None, import_stmt1)
-		proc, qerr, qout, r2 = asynccommand(None, proc, qerr, qout, import_stmt2)
+		proc, qerr, qout, r1 = asynccommand("python3 -iu", None, None, None, import_stmt1, wait=False)
+		proc, qerr, qout, r2 = asynccommand(None, proc, qerr, qout, import_stmt2, wait=False)
 		proc, qerr, qout, r3 = asynccommand(None, proc, qerr, qout, import_stmt3, wait=False)
 		firstcall = {proc, qerr, qout}
 	else:
