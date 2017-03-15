@@ -176,7 +176,10 @@ class Snafu:
 					if os.isatty(sys.stdin.fileno()):
 						data = input("Data for argument {} needed:".format(wantedarg))
 					else:
-						data = sys.stdin.read()
+						data = sys.stdin.read().strip()
+					# FIXME: heuristics - based on name or on presence of curly braces?
+					if wantedarg == "event":
+						data = json.loads(data)
 					funcargs.append(data)
 				else:
 					self.alert("Error: Data for argument {} needed but not supplied.".format(wantedarg))
@@ -333,6 +336,7 @@ class SnafuRunner:
 		snafu.setupexecutors([args.executor])
 
 		if args.execute:
+			snafu.interactive = True
 			snafu.execute(args.execute)
 		else:
 			try:
