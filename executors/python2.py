@@ -1,7 +1,5 @@
 # Snafu: Snake Functions - Python2 Executor
 
-#import os
-#import time
 import json
 import subprocess
 import pickle
