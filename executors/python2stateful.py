@@ -44,7 +44,7 @@ def asynccommand(command, commandprocess, qerr, qout, inputline, wait=True):
 	while True:
 		both_empty = True
 		try:
-			line = qout.get(timeout=0.01)
+			line = qout.get(timeout=0.001)
 		except queue.Empty:
 			pass
 		else:
@@ -52,7 +52,7 @@ def asynccommand(command, commandprocess, qerr, qout, inputline, wait=True):
 			both_empty = False
 			results += line
 		try:
-			line = qerr.get(timeout=0.01)
+			line = qerr.get(timeout=0.001)
 		except queue.Empty:
 			pass
 		else:
