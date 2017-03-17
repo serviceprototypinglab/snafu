@@ -101,13 +101,22 @@ class ControlUtil:
 	def reaperthread(debug=False):
 		if debug:
 			print("REAPER init")
+		f = open("/proc/net/tcp")
 		while True:
 			time.sleep(1)
-			if debug:
-				print("REAPER reap")
-			fds = glob.glob("/proc/{}/fd/*".format(os.getpid()))
-			sockets = {}
-			for fd in fds:
+			try:
+				ControlUtil.reaperthread_internal(True, f)
+			except Exception as e:
+				if debug:
+					print("REAPER crash {}".format(e))
+
+	def reaperthread_internal(debug, f):
+		if debug:
+			print("REAPER reap")
+		fds = glob.glob("/proc/{}/fd/*".format(os.getpid()))
+		sockets = {}
+		for fd in fds:
+			try:
 				rp = os.path.realpath(fd)
 				if os.path.islink(fd) and not os.path.exists(rp):
 					socket = int(os.path.basename(fd))
@@ -115,21 +124,28 @@ class ControlUtil:
 						print("+", socket, rp)
 					rp = os.path.basename(rp).replace("socket:[", "").replace("]", "")
 					sockets[rp] = socket
-			f = open("/proc/net/tcp")
-			tcp = f.readlines()
-			for line in tcp:
-				line = [x for x in line.split(" ") if x]
-				st = line[3]
-				inode = line[9]
-				if inode in sockets:
+			except:
+				if debug:
+					print("-", fd)
+				pass
+		f.seek(0)
+		tcp = f.readlines()
+		for line in tcp:
+			line = [x for x in line.split(" ") if x]
+			st = line[3]
+			inode = line[9]
+			if inode in sockets:
+				if debug:
+					print("?", inode, st)
+				if st == "08":
 					if debug:
-						print("?", inode, st)
-					if st == "08":
-						if debug:
-							print("! close", sockets[inode])
-						else:
-							print("Reap dangling connection {}".format(sockets[inode]))
+						print("! close", sockets[inode])
+					else:
+						print("Reap dangling connection {}".format(sockets[inode]))
+					try:
 						os.close(sockets[inode])
+					except:
+						pass
 
 	def reaper():
 		t = threading.Thread(target=ControlUtil.reaperthread, args=(False,))

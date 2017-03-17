@@ -4,7 +4,7 @@ import json
 from boto3 import client as boto3_client
 lambda_client = boto3_client('lambda', endpoint_url='http://localhost:10000')
 
-lambda_client._endpoint.timeout = 300
+lambda_client._endpoint.timeout = 300 # comment for reaper
 
 def fib(x):
 	msg = {"x": x}
@@ -14,6 +14,7 @@ def fib(x):
 	return response["ret"]
 
 def lambda_handler(event, context):
+	#time.sleep(0.1) # uncomment for reaper
 	x = event["x"]
 	if x in (1, 2):
 		return {"ret": 1}
