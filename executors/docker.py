@@ -3,6 +3,7 @@
 import requests
 import os
 import configparser
+import time
 
 container = "jszhaw/snafu"
 
@@ -44,6 +45,7 @@ def executecontrol(flaskrequest, tenant):
 					c.set(acc, "aws_secret_access_key", secretkey)
 					f = open("{}/credentials".format(accdir), "w")
 					c.write(f)
+					f.close()
 
 					c = configparser.ConfigParser()
 					acc = "default"
@@ -51,8 +53,10 @@ def executecontrol(flaskrequest, tenant):
 					c.set(acc, "region", "invalid")
 					f = open("{}/config".format(accdir), "w")
 					c.write(f)
+					f.close()
 		dockercmd = "docker run -d -p 127.0.0.1:{}:10000 -v /opt/functions-tenants/{}:/opt/functions-local {} {}".format(portnum, tenant, authmount, container)
 		os.system(dockercmd)
+		time.sleep(1)
 	endpoint = endpoints[tenant]
 
 	headers = {}
