@@ -9,7 +9,7 @@ import random
 container = "jszhaw/snafu"
 
 endpoints = {}
-multi = 8
+multi = 3
 authorised = True
 
 def launch(tenant, portnum):
@@ -76,7 +76,7 @@ def executecontrol(flaskrequest, tenant):
 	endpoint = endpoints[tenant]
 	if multi:
 		endpoint = random.choice(endpoint)
-		print("CHOICE", endpoint)
+		#print("CHOICE", endpoint)
 
 	headers = {}
 	headers["X-Amz-Date"] = flaskrequest.headers.get("X-Amz-Date")
