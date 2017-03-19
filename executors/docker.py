@@ -56,7 +56,7 @@ def executecontrol(flaskrequest, tenant):
 					f.close()
 		dockercmd = "docker run -d -p 127.0.0.1:{}:10000 -v /opt/functions-tenants/{}:/opt/functions-local {} {}".format(portnum, tenant, authmount, container)
 		os.system(dockercmd)
-		time.sleep(1)
+		time.sleep(2)
 	endpoint = endpoints[tenant]
 
 	headers = {}
