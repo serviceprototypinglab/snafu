@@ -160,8 +160,12 @@ class Snafu:
 				keys = ",".join(envvars.keys())
 				self.info("config:environment:{}".format(keys))
 
-		args = inspect.getargspec(func)
-		wantedargs = args[0]
+		if "java" in self.executormods[0].__name__:
+			#wantedargs = []
+			wantedargs = kwargs
+		else:
+			args = inspect.getargspec(func)
+			wantedargs = args[0]
 		funcargs = []
 		for wantedarg in wantedargs:
 			if wantedarg in kwargs:
@@ -237,6 +241,44 @@ class Snafu:
 			if not handled:
 				time.sleep(5)
 
+	def activatejavafile(self, source, convention):
+		if not os.path.isfile("executors/java/JavaExec.class"):
+			pwd = os.getcwd()
+			os.chdir("executors/java")
+			os.system("javac JavaExec.java")
+			os.chdir(pwd)
+
+		if source.endswith("java"):
+			binfile = source.replace(".java", ".class")
+			if not os.path.isfile(binfile):
+				if not self.quiet:
+					print("» java source:", source)
+				pwd = os.getcwd()
+				os.chdir(os.path.dirname(source))
+				os.system("javac {}".format(os.path.basename(source)))
+				os.chdir(pwd)
+				source = binfile
+			else:
+				return
+
+		if not self.quiet:
+			print("» java module:", source)
+
+		#javacmd = "java -cp executors/java/:{} JavaExec {} fib 3".format(os.path.dirname(source), os.path.basename(source).split(".")[0])
+		#javacmd = "java JavaExec Hello myHandler 5 null"
+		#print("JAVA", javacmd)
+		javacmd = "java -cp executors/java/:{} JavaExec {} SCAN".format(os.path.dirname(source), os.path.basename(source).split(".")[0])
+		#os.system(javacmd)
+		out, err = subprocess.Popen(javacmd, shell=True, stdout=subprocess.PIPE).communicate()
+		for funcname in out.decode("utf-8").split("\n"):
+			if not funcname:
+				continue
+			funcname = os.path.basename(source).split(".")[0] + "." + funcname
+			if not self.quiet:
+				print("  function: {}".format(funcname))
+			sourceinfos = SnafuFunctionSource(source, scan=False)
+			self.functions[funcname] = (None, None, sourceinfos)
+
 	def activatefile(self, source, convention):
 		sourceinfos = None
 		try:
@@ -301,6 +343,8 @@ class Snafu:
 			if os.path.isfile(source):
 				if source.endswith(".py"):
 					self.activatefile(source, convention)
+				elif source.endswith(".java") or source.endswith(".class"):
+					self.activatejavafile(source, convention)
 			elif os.path.isdir(source):
 				#p = pathlib.Path(source)
 				entries = [os.path.join(source, entry.name) for entry in os.scandir(source) if not entry.name.startswith(".")]
@@ -314,7 +358,7 @@ class SnafuRunner:
 		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
 		parser.add_argument("-l", "--logger", help="function loggers; 'csv' by default", choices=["csv", "sqlite", "none"], default=["csv"], nargs="+")
-		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful"], default="inmemory")
+		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java"], default="inmemory")
 
 	def __init__(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service")
