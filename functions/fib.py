@@ -1,8 +1,16 @@
 import time
 import math
 import json
+import os
 from boto3 import client as boto3_client
-lambda_client = boto3_client('lambda', endpoint_url='http://localhost:10000')
+
+hostaccess = False
+
+host = "localhost"
+if hostaccess and os.path.isfile("/.dockerenv"):
+	host = "172.17.0.1"
+
+lambda_client = boto3_client('lambda', endpoint_url='http://{}:10000'.format(host))
 
 lambda_client._endpoint.timeout = 300 # comment for reaper
 
