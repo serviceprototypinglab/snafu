@@ -9,6 +9,8 @@ Functions implemented in Python 2 and in other programming languages are
 currently not supported. This may be changed by the introduction of
 external launchers, at the cost of higher call overhead.
 
+ -> external launchers are now available
+
 The isolation level offered with --isolation is weak. A medium-level
 protection could be achieved by running snafu slaves in separate
 containers with mounted tenant function directories.

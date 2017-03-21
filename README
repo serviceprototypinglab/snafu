@@ -1,13 +1,11 @@
 Snafu: Snake Functions
-(☺) 2017 Josef Spillner <josef.spillner@zhaw.ch>
-(C) 2017 Zürcher Hochschule für Angewandte Wissenschaften
 =========================================================
 
-Snafu is a tiny flexible Function-as-a-Service (FaaS) host process for Python.
-Snafu is unique in reducing the effort to get going (no configuration is
-required, although a configuration file is available for optional
-customisation), in choosing the execution model (with and without isolation for
-instance) and in exposure of functions.
+Snafu is a tiny flexible Function-as-a-Service (FaaS) host process for
+Python. Snafu is unique in reducing the effort to get going (no
+configuration is required, although a configuration file is available
+for optional customisation), in choosing the execution model (with and
+without isolation for instance) and in exposure of functions.
 
 Functions are read from specified Python source files. If no directory
 is specified, 'functions' with some sample functions as well as
@@ -68,8 +66,9 @@ Connectors (only in snafu)
 * cli (interactive function name choice; payload asked or read from
   stdin)
 * web (function name chosen via URL path; payload via HTTP POST)
-* messaging (no function name choice: calls hello_world; no payload?)
-* filesystem (no function name choice: calls lambda_handler; no payload?)
+* messaging (no function name choice apart from config; no payload choice: )
+* filesystem (no function name choice apart from config; no payload choice: )
+* cron (no function name choice apart from config; no payload choice: empty)
 
 Loggers
 -------
@@ -77,12 +76,19 @@ Loggers
 * sqlite
 * (none)
 
-Executors (partially only in snafu-control)
--------------------------------------------
+Executors
+---------
 * inmemory (fastest, in-memory, only for truly stateless function)
 * inmemstateless (higher isolation level through module reload)
+* python2 (external
+* python2stateful (re-used instance with lower isolation level)
+* java (external, under development)
+
+Forwarders (only in snafu-control, as pseudo-executors)
+-------------------------------------------------------
 * proxy (redirect to another fixed or per-tenant instance of Snafu)
 * docker (redirect to a dynamically created per-tenant instance)
+* openshift (under development)
 
 Authenticators (only in snafu-control)
 --------------------------------------
@@ -98,6 +104,9 @@ environment.
 
 Licence
 -------
+(☺) 2017 Josef Spillner <josef.spillner@zhaw.ch>
+(C) 2017 Zürcher Hochschule für Angewandte Wissenschaften
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use any file in this repository except in compliance with
 the License. You may obtain a copy of the License at
