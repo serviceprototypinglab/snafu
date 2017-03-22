@@ -162,7 +162,7 @@ class Snafu:
 
 		if "java" in self.executormods[0].__name__:
 			#wantedargs = []
-			wantedargs = kwargs
+			func, *wantedargs = func
 		else:
 			args = inspect.getargspec(func)
 			wantedargs = args[0]
@@ -273,11 +273,12 @@ class Snafu:
 		for funcname in out.decode("utf-8").split("\n"):
 			if not funcname:
 				continue
+			funcname, *funcparams = funcname.split(" ")
 			funcname = os.path.basename(source).split(".")[0] + "." + funcname
 			if not self.quiet:
 				print("  function: {}".format(funcname))
 			sourceinfos = SnafuFunctionSource(source, scan=False)
-			self.functions[funcname] = (None, None, sourceinfos)
+			self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
 
 	def activatefile(self, source, convention):
 		sourceinfos = None

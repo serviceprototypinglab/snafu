@@ -83,7 +83,11 @@ class FunctionLoader
 					&& (!cmethod.getName().equals("notify"))
 					&& (!cmethod.getName().equals("notifyAll")))
 					{
-						System.out.println(cmethod.getName());
+						Parameter[] parameters = cmethod.getParameters();
+						String params = "";
+						for(Parameter p : parameters)
+							params += " " + p.getName();
+						System.out.println(cmethod.getName() + params);
 					}
 				}
 				else if(cmethod.getName().equals(methodname))
