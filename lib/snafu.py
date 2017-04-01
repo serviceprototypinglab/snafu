@@ -313,7 +313,12 @@ class Snafu:
 		loader = importlib.machinery.SourceFileLoader(os.path.basename(source), source)
 		mod = types.ModuleType(loader.name)
 		sourceinfos.module = mod
-		loader.exec_module(mod)
+		try:
+			loader.exec_module(mod)
+		except Exception as e:
+			if not self.quiet:
+				print("  Warning: skipping due to import error: {}".format(e))
+			return
 		sourcename = os.path.basename(source).split(".")[0]
 		for node in ast.walk(sourcetree):
 			if type(node) == ast.FunctionDef:
