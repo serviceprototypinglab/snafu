@@ -1,4 +1,4 @@
-# Snafu: Snake Functions - Python2 Executor
+# Snafu: Snake Functions - Python3 Executor
 
 import json
 import subprocess
@@ -11,12 +11,12 @@ def strbool(x):
 def execute(func, funcargs, envvars, sourceinfos):
 	for i, funcarg in enumerate(funcargs):
 		if "__class__" in dir(funcarg) and funcarg.__class__.__name__ == "SnafuContext":
-			funcargs[i] = "pickle:" + base64.b64encode(pickle.dumps(funcarg, protocol=2)).decode("utf-8")
+			funcargs[i] = "pickle:" + base64.b64encode(pickle.dumps(funcarg)).decode("utf-8")
 
 	funcargs = json.dumps(funcargs)
 	envvars = json.dumps(envvars)
 
-	p = subprocess.run("python2 executors/python2-exec.py {} {} '{}' '{}'".format(sourceinfos.source, func.__name__, funcargs, envvars), stdout=subprocess.PIPE, shell=True)
+	p = subprocess.run("python3 executors/python3-exec.py {} {} '{}' '{}'".format(sourceinfos.source, func.__name__, funcargs, envvars), stdout=subprocess.PIPE, shell=True)
 
 	try:
 		dtime, success, *res = p.stdout.decode("utf-8").strip().split(" ")

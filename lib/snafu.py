@@ -364,7 +364,7 @@ class SnafuRunner:
 		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
 		parser.add_argument("-l", "--logger", help="function loggers; 'csv' by default", choices=["csv", "sqlite", "none"], default=["csv"], nargs="+")
-		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java"], default="inmemory")
+		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3"], default="inmemory")
 
 	def __init__(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service")
