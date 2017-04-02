@@ -161,10 +161,29 @@ class SnafuControl:
 	def __init__(self):
 		pass
 
+	@app.route("/<user>-<namespace>-<number>", methods=["HEAD", "PUT"])
+	def s3(user, namespace, number):
+		#if flask.request.method == "HEAD":
+		#	return "{}", 404
+		return "{}"
+
+	@app.route("/<bucket>/<dir>/<objectname>.meta.json")
+	def s3meta(bucket, dir, objectname):
+		return "{\"python_ver\": \"3.5\"}"
+
 	@app.route("/", methods=["POST"])
-	def sts():
-		#data = flask.request.data.decode("utf-8")
-		return "<GetCallerIdentityResponse xmlns='https://sts.amazonaws.com/doc/2011-06-15/'><GetCallerIdentityResult><Account>000000000000</Account></GetCallerIdentityResult></GetCallerIdentityResponse>"
+	def sts_iam():
+		if "Action" in flask.request.form:
+			action = flask.request.form["Action"]
+			if action == "GetCallerIdentity":
+				return "<GetCallerIdentityResponse xmlns='https://sts.amazonaws.com/doc/2011-06-15/'><GetCallerIdentityResult><Account>000000000000</Account></GetCallerIdentityResult></GetCallerIdentityResponse>"
+			elif action == "CreateRole":
+				return "<CreateRoleResponse xmlns='https://iam.amazonaws.com/doc/2010-05-08/'><CreateRoleResult><Role></Role></CreateRoleResult></CreateRoleResponse>"
+			elif action == "PutRolePolicy":
+				return "<PutRolePolicyResponse xmlns='https://iam.amazonaws.com/doc/2010-05-08/'></PutRolePolicyResponse>"
+			else:
+				err = json.dumps({"errorMessage": "UndefinedAction"})
+				return err, 501
 
 	@app.route("/function-download/<function>.zip")
 	def functiondownload(function):
