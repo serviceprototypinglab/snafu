@@ -4,6 +4,7 @@ import json
 import subprocess
 import pickle
 import base64
+import tempfile
 
 def strbool(x):
 	return True if x == "True" else False
@@ -15,6 +16,11 @@ def execute(func, funcargs, envvars, sourceinfos):
 
 	funcargs = json.dumps(funcargs)
 	envvars = json.dumps(envvars)
+
+	if len(funcargs) > 256:
+		tf = tempfile.NamedTemporaryFile()
+		tf.write(bytes(funcargs, "utf-8"))
+		funcargs = "tempfile:" + tf.name
 
 	p = subprocess.run("python2 executors/python2-exec.py {} {} '{}' '{}'".format(sourceinfos.source, func.__name__, funcargs, envvars), stdout=subprocess.PIPE, shell=True)
 

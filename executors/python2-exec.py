@@ -15,6 +15,9 @@ class Context:
 		return x
 
 def execute(filename, func, funcargs, envvars):
+	if funcargs.startswith("tempfile:"):
+		funcargs = open(funcargs[9:]).read()
+
 	funcargs = json.loads(funcargs)
 	envvars = json.loads(envvars)
 
