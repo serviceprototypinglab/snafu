@@ -45,6 +45,12 @@ class SnafuImport:
 			os.makedirs(funcdir, exist_ok=True)
 			subprocess.run("cd {} && unzip -o -q ../{}".format(funcdir, os.path.basename(codezip)), shell=True)
 		codefiles = glob.glob(os.path.join(funcdir, "*.py"))
+		if len(codefiles) == 0:
+			codefiles = glob.glob(os.path.join(funcdir, "*.java"))
+		if len(codefiles) == 0:
+			codefiles = glob.glob(os.path.join(funcdir, "*.class"))
+		if len(codefiles) == 0:
+			codefiles = glob.glob(os.path.join(funcdir, "*.js"))
 		codefile = codefiles[0]
 		oldcodefile = None
 		if codezip:
