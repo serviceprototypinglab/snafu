@@ -166,7 +166,7 @@ class Snafu:
 				keys = ",".join(envvars.keys())
 				self.info("config:environment:{}".format(keys))
 
-		if "java" in self.executormods[0].__name__:
+		if "java" in self.executormods[0].__name__ or "javascript" in self.executormods[0].__name__:
 			#wantedargs = []
 			func, *wantedargs = func
 		else:
@@ -246,6 +246,35 @@ class Snafu:
 					handled = True
 			if not handled:
 				time.sleep(5)
+
+	def activatejavascriptfile(self, source, convention):
+		if not self.quiet:
+			print("» javascript module:", source)
+
+		try:
+			import pyesprima.pyesprima
+		except:
+			print("Warning: {} is not parseable, skipping.".format(source), file=sys.stderr)
+			return
+
+		pyesprima.pyesprima.unichr = chr
+
+		ast = pyesprima.pyesprima.parse(open(source).read())
+
+		for body in ast.body:
+			if body["type"] == "FunctionDeclaration":
+				#print("ast function detected: " + body["id"]["name"])
+				#process(body, body["id"]["name"])
+				pass
+			if body.type == "ExpressionStatement":
+				if body.expression.left.type == "MemberExpression":
+					if body.expression.left.object.name == "exports":
+						funcname = body.expression.left.property.name
+						if not self.quiet:
+							print("  function: {}".format(funcname))
+							sourceinfos = SnafuFunctionSource(source, scan=False)
+							funcparams = ["req", "res"]
+							self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
 
 	def activatejavafile(self, source, convention):
 		if not os.path.isfile("executors/java/JavaExec.class"):
@@ -357,6 +386,8 @@ class Snafu:
 					self.activatefile(source, convention)
 				elif source.endswith(".java") or source.endswith(".class"):
 					self.activatejavafile(source, convention)
+				elif source.endswith(".js"):
+					self.activatejavascriptfile(source, convention)
 			elif os.path.isdir(source):
 				#p = pathlib.Path(source)
 				entries = [os.path.join(source, entry.name) for entry in os.scandir(source) if not entry.name.startswith(".")]
@@ -370,7 +401,7 @@ class SnafuRunner:
 		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
 		parser.add_argument("-l", "--logger", help="function loggers; 'csv' by default", choices=["csv", "sqlite", "none"], default=["csv"], nargs="+")
-		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3"], default="inmemory")
+		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3", "javascript"], default="inmemory")
 
 	def __init__(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service")
