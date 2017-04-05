@@ -26,9 +26,9 @@ RUN mkdir -p ~/.aws && echo "[default]\nregion = invalid" > ~/.aws/config
 RUN wget -q https://console.appuio.ch/console/extensions/clients/linux/oc -O /usr/bin/oc
 RUN chmod +x /usr/bin/oc
 
-RUN apt-get install -y --no-install-recommends awscli
+RUN apt-get install -y --no-install-recommends awscli unzip nodejs-legacy
 RUN wget -q https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-149.0.0-linux-x86_64.tar.gz && tar xf google-cloud-sdk-149.0.0-linux-x86_64.tar.gz && rm -f google-cloud-sdk-149.0.0-linux-x86_64.tar.gz && cd google-cloud-sdk && echo n | CLOUDSDK_PYTHON=python2 ./install.sh
-RUN ln -s /google-cloud-sdk/bin/gcloud /usr/bin/
+RUN ln -s /google-cloud-sdk/bin/gcloud /usr/bin/ && ln -s /google-cloud-sdk/bin/gsutil /usr/bin/
 RUN echo y | gcloud components install beta
 
 EXPOSE 10000
