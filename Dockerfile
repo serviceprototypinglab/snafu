@@ -31,6 +31,9 @@ RUN wget -q https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cl
 RUN ln -s /google-cloud-sdk/bin/gcloud /usr/bin/ && ln -s /google-cloud-sdk/bin/gsutil /usr/bin/
 RUN echo y | gcloud components install beta
 
+RUN echo "def GetTestNames(): return []" > /google-cloud-sdk/platform/gsutil/gslib/tests/util.py
+RUN echo "import unittest" >> /google-cloud-sdk/platform/gsutil/gslib/tests/util.py
+
 EXPOSE 10000
 
 CMD ["/bin/bash", "/opt/snafu-control.sh"]
