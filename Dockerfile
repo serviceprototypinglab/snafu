@@ -7,6 +7,7 @@ FROM python:3
 ADD . /opt
 
 RUN echo 'cd /opt && PYTHONPATH=/usr/lib/python3/dist-packages python3 -u ./snafu-control $*' > /opt/snafu-control.sh && chmod +x /opt/snafu-control.sh
+RUN echo "[snafu]\nlogger.csv = /opt/functions-local/.snafu.csv" > /opt/snafu.ini
 
 RUN apt-get update && apt-get install -y python3-flask python3-requests
 
@@ -33,6 +34,9 @@ RUN echo y | gcloud components install beta
 
 RUN echo "def GetTestNames(): return []" > /google-cloud-sdk/platform/gsutil/gslib/tests/util.py
 RUN echo "import unittest" >> /google-cloud-sdk/platform/gsutil/gslib/tests/util.py
+
+RUN pip install pyesprima
+RUN rm /usr/local/lib/python3.6/site-packages/pyesprima/__init__.py
 
 EXPOSE 10000
 

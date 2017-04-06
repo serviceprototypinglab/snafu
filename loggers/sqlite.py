@@ -9,8 +9,8 @@ def log(source, function, duration, success):
 	if os.path.isfile("snafu.ini"):
 		config = configparser.ConfigParser()
 		config.read("snafu.ini")
-		if "snafu" in config and "log.sqlite" in config["snafu"]:
-			logurl = config["snafu"]["log.sqlite"]
+		if "snafu" in config and "logger.sqlite" in config["snafu"]:
+			logurl = config["snafu"]["logger.sqlite"]
 
 	init = False
 	if not os.path.isfile(logurl):
