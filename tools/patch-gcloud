@@ -1,0 +1,10 @@
+#!/bin/bash
+
+gcloudfolder=`gcloud info | grep "Installation Root" | cut -d "[" -f 2 | cut -d "]" -f 1`
+
+if [ ! -z "$gcloudfolder" ]
+then
+	file=$gcloudfolder/lib/googlecloudsdk/third_party/apis/cloudfunctions/v1beta2/cloudfunctions_v1beta2_client.py
+	echo "Patching $file..."
+	sed -i -e "s,^  BASE_URL = u'https://cloudfunctions.googleapis.com/',  BASE_URL = u'http://localhost:10000/'," $file
+fi
