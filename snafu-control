@@ -52,6 +52,14 @@ update-alias
 update-event-source-mapping
 * update-function-code
 * update-function-configuration
+
+GCloud CLI support
+Legend: * = implemented, / = noop, # = not necessary
+call
+delete
+deploy
+describe
+* list
 """
 
 class ControlUtil:
@@ -184,6 +192,23 @@ class SnafuControl:
 			else:
 				err = json.dumps({"errorMessage": "UndefinedAction"})
 				return err, 501
+
+	@app.route("/v1beta2/projects/<project>/locations/<location>/functions")
+	# alt=json&pageSize=100
+	def listfunctionsgoogle(project, location):
+		f = []
+		for function in SnafuControl.snafu.functions:
+			fmap = {"name": function, "status": "ready", "httpsTrigger": {"url": "..."}}
+			f.append(fmap)
+
+		functions = {"functions" : f}
+		return json.dumps(functions)
+
+	@app.route("/v1beta2/projects/<project>/locations/<location>/functions/<function>", methods=["POST"])
+	def invokegoogle(project, location, function):
+		function = function.split(":")[0]
+		response = SnafuControl.snafu.execute(function)
+		return json.dumps(response)
 
 	@app.route("/function-download/<function>.zip")
 	def functiondownload(function):
