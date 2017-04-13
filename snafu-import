@@ -15,7 +15,7 @@ class SnafuImportUtility:
 
 	def start_import(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service - Import Utility")
-		parser.add_argument("-s", "--source", help="import source", choices=["lambda", "gfunctions"], default=None)
+		parser.add_argument("-s", "--source", help="import source", choices=["lambda", "gfunctions", "openwhisk"], default=None)
 		parser.add_argument("-c", "--convert", help="convert functions from Python 2 to Python 3 for native execution")
 		args = parser.parse_args()
 
@@ -27,6 +27,41 @@ class SnafuImportUtility:
 			self.import_lambda(args.convert)
 		elif args.source == "gfunctions":
 			self.import_gfunctions()
+		elif args.source == "openwhisk":
+			self.import_openwhisk()
+
+	def import_openwhisk(self):
+		proc = subprocess.run("wsk list", stdout=subprocess.PIPE, shell=True)
+		out = proc.stdout.decode("utf-8")
+		inactions = False
+		for line in out.split("\n"):
+			line = line.split(" " * 2)
+			if line[0] == "actions":
+				inactions = True
+			elif line[0] == "triggers":
+				inactions = False
+			elif inactions:
+				function = line[0]
+				print("import", function)
+				proc = subprocess.run("wsk action get '{}'".format(function), stdout=subprocess.PIPE, shell=True)
+				out = proc.stdout.decode("utf-8")
+				out = out[out.find("\n"):]
+				#print("CODE", out)
+				actioninfo = json.loads(out)
+				code = actioninfo["exec"]
+				filename = None
+				if code["kind"] == "nodejs" or code["kind"] == "nodejs:6":
+					filename = actioninfo["name"] + ".js"
+				elif code["kind"] == "python":
+					filename = actioninfo["name"] + ".py"
+				else:
+					print("- skip ({})".format(code["kind"]))
+				if filename:
+					#codefile, configfile, oldcodefile = lib.snafu.SnafuImport.importfunction(actioninfo["name"], None, x, False)
+					codefile = os.path.join(lib.snafu.SnafuImport.functiondir, filename)
+					f = open(codefile, "w")
+					f.write(code["code"])
+					print("+ code: {}".format(codefile))
 
 	def import_gfunctions(self):
 		proc = subprocess.run("gcloud beta functions list", stdout=subprocess.PIPE, shell=True)
