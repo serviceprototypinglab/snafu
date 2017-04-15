@@ -60,6 +60,14 @@ delete
 deploy
 describe
 * list
+
+WSK CLI support
+Legend: * = implemented, / = noop, # = not necessary
+/ namespace list
+(*) list
+(*) action list
+(*) action get
+(*) action invoke
 """
 
 class ControlUtil:
@@ -192,6 +200,50 @@ class SnafuControl:
 			else:
 				err = json.dumps({"errorMessage": "UndefinedAction"})
 				return err, 501
+
+	@app.route("/api/v1/namespaces")
+	def listnamespaceopenwhisk():
+		d = ["snafu"]
+		return json.dumps(d)
+
+	@app.route("/api/v1/namespaces/<namespace>/")
+	def listfunctionsopenwhisk(namespace):
+		overridenamespace = "snafu"
+		f = []
+		for function in SnafuControl.snafu.functions:
+			ann = [{"key": "exec", "value": "python:2"}]
+			fmap = {"namespace": overridenamespace, "name": function, "annotations": ann}
+			f.append(fmap)
+		d = {"actions": f}
+		return json.dumps(d)
+
+	@app.route("/api/v1/namespaces/<namespace>/actions")
+	# ?limit=30&skip=0
+	def listfunctionsactionsopenwhisk(namespace):
+		overridenamespace = "snafu"
+		f = []
+		for function in SnafuControl.snafu.functions:
+			fmap = {"namespace": overridenamespace, "name": function}
+			f.append(fmap)
+		return json.dumps(f)
+
+	@app.route("/api/v1/namespaces/<namespace>/actions/<function>")
+	def getfunctionopenwhisk(namespace, function):
+		overridenamespace = "snafu"
+		d = {"namespace": overridenamespace, "name": function, "version": "0.0.1", "publish": False}
+		return json.dumps(d)
+
+	@app.route("/api/v1/namespaces/<namespace>/actions/<function>", methods=["POST"])
+	# ?blocking=true&result=true
+	def invokeopenwhisk(namespace, function):
+		data = flask.request.data.decode("utf-8")
+		dataargs = json.loads(data)
+		#print("F", function, dataargs)
+		response = SnafuControl.snafu.execute(function, **dataargs)
+		#print("R", response)
+		if type(response) == dict:
+			response = json.dumps(response)
+		return response
 
 	@app.route("/v1beta2/projects/<project>/locations/<location>/functions")
 	# alt=json&pageSize=100
@@ -430,6 +482,7 @@ class SnafuControl:
 
 		SnafuControl.snafu = lib.snafu.Snafu(args.quiet)
 		SnafuControl.port = args.port
+		# FIXME: should now provide the choice between lambda, gfunctions and openwhisk depending on modular activation
 		self.snafu.activate(args.file, "lambda", ignore=ignore)
 		self.snafu.setuploggers(args.logger)
 		self.snafu.setupexecutors([args.executor])
