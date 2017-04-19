@@ -55,7 +55,7 @@ update-event-source-mapping
 
 GCloud CLI support
 Legend: * = implemented, / = noop, # = not necessary
-call
+(*) call
 delete
 deploy
 describe
@@ -126,6 +126,23 @@ class ControlUtil:
 				if debug:
 					print("REAPER crash {}".format(e))
 
+	def deployerthread(snafu, debug=False):
+		if debug:
+			print("DEPLOYER init")
+		import pyinotify
+		wm = pyinotify.WatchManager()
+		mask = pyinotify.IN_CREATE
+
+		class EventHandler(pyinotify.ProcessEvent):
+			def process_IN_CREATE(self, event):
+				print("Hot deployment of function {}".format(event.pathname))
+				snafu.activate([event.pathname], "any")
+
+		handler = EventHandler()
+		notifier = pyinotify.Notifier(wm, handler)
+		wdd = wm.add_watch("functions-local", mask, rec=True)
+		notifier.loop()
+
 	def reaperthread_internal(debug, f):
 		if debug:
 			print("REAPER reap")
@@ -165,6 +182,11 @@ class ControlUtil:
 
 	def reaper():
 		t = threading.Thread(target=ControlUtil.reaperthread, args=(False,))
+		t.setDaemon(True)
+		t.start()
+
+	def deployer(snafu):
+		t = threading.Thread(target=ControlUtil.deployerthread, args=(snafu, False))
 		t.setDaemon(True)
 		t.start()
 
@@ -464,6 +486,7 @@ class SnafuControl:
 		parser.add_argument("-a", "--authenticator", help="function authenticators; 'none' by default", choices=["aws", "none"], default=["none"], nargs="+")
 		parser.add_argument("-p", "--port", help="HTTP port number", type=int, default=10000)
 		parser.add_argument("-r", "--reaper", help="closed connection reaper", action="store_true")
+		parser.add_argument("-d", "--deployer", help="automated hot deployment", action="store_true")
 
 		for action in parser._actions:
 			if action.dest == "executor":
@@ -495,6 +518,10 @@ class SnafuControl:
 		if args.reaper:
 			print("+ reaper")
 			ControlUtil.reaper()
+
+		if args.deployer:
+			print("+ deployer")
+			ControlUtil.deployer(SnafuControl.snafu)
 
 		self.app.run(host="0.0.0.0", port=args.port, threaded=True)
 
