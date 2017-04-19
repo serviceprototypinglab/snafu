@@ -254,12 +254,16 @@ class Snafu:
 		try:
 			import pyesprima.pyesprima
 		except:
-			print("Warning: {} is not parseable, skipping.".format(source), file=sys.stderr)
+			print("Warning: {} parser not ready, skipping.".format(source), file=sys.stderr)
 			return
 
 		pyesprima.pyesprima.unichr = chr
 
-		ast = pyesprima.pyesprima.parse(open(source).read())
+		try:
+			ast = pyesprima.pyesprima.parse(open(source).read())
+		except:
+			print("Warning: {} is not parseable, skipping.".format(source), file=sys.stderr)
+			return
 
 		for body in ast.body:
 			if body["type"] == "FunctionDeclaration":
