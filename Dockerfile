@@ -35,6 +35,9 @@ RUN echo y | gcloud components install beta
 RUN echo "def GetTestNames(): return []" > /google-cloud-sdk/platform/gsutil/gslib/tests/util.py
 RUN echo "import unittest" >> /google-cloud-sdk/platform/gsutil/gslib/tests/util.py
 
+RUN wget -q https://openwhisk.ng.bluemix.net/cli/go/download/linux/amd64/wsk -O /usr/bin/wsk
+RUN chmod +x /usr/bin/wsk
+
 RUN pip install pyesprima
 RUN rm /usr/local/lib/python3.6/site-packages/pyesprima/__init__.py
 
