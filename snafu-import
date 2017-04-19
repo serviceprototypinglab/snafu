@@ -16,6 +16,7 @@ class SnafuImportUtility:
 	def start_import(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service - Import Utility")
 		parser.add_argument("-s", "--source", help="import source", choices=["lambda", "gfunctions", "openwhisk"], default=None)
+		parser.add_argument("-t", "--target", help="import target", choices=["snafu", "funktion"], default="snafu")
 		parser.add_argument("-c", "--convert", help="convert functions from Python 2 to Python 3 for native execution")
 		args = parser.parse_args()
 
@@ -28,9 +29,9 @@ class SnafuImportUtility:
 		elif args.source == "gfunctions":
 			self.import_gfunctions()
 		elif args.source == "openwhisk":
-			self.import_openwhisk()
+			self.import_openwhisk(args.target)
 
-	def import_openwhisk(self):
+	def import_openwhisk(self, target):
 		proc = subprocess.run("wsk list", stdout=subprocess.PIPE, shell=True)
 		out = proc.stdout.decode("utf-8")
 		inactions = False
@@ -52,16 +53,20 @@ class SnafuImportUtility:
 				filename = None
 				if code["kind"] == "nodejs" or code["kind"] == "nodejs:6":
 					filename = actioninfo["name"] + ".js"
-				elif code["kind"] == "python":
+				elif code["kind"] == "python" or code["kind"] == "python:2":
 					filename = actioninfo["name"] + ".py"
 				else:
 					print("- skip ({})".format(code["kind"]))
 				if filename:
-					#codefile, configfile, oldcodefile = lib.snafu.SnafuImport.importfunction(actioninfo["name"], None, x, False)
-					codefile = os.path.join(lib.snafu.SnafuImport.functiondir, filename)
-					f = open(codefile, "w")
-					f.write(code["code"])
-					print("+ code: {}".format(codefile))
+					if target == "snafu":
+						#codefile, configfile, oldcodefile = lib.snafu.SnafuImport.importfunction(actioninfo["name"], None, x, False)
+						codefile = os.path.join(lib.snafu.SnafuImport.functiondir, filename)
+						f = open(codefile, "w")
+						f.write(code["code"])
+						print("+ code: {}".format(codefile))
+					elif target == "funktion":
+						codeline = code["code"].replace("\n", "\\n")
+						subprocess.run("funktion create fn -n {} -s '{}'".format(actioninfo["name"], codeline), shell=True)
 
 	def import_gfunctions(self):
 		proc = subprocess.run("gcloud beta functions list", stdout=subprocess.PIPE, shell=True)
