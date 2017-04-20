@@ -66,7 +66,7 @@ class SnafuImportUtility:
 						print("+ code: {}".format(codefile))
 					elif target == "funktion":
 						codeline = code["code"].replace("\n", "\\n")
-						subprocess.run("funktion create fn -n {} -s '{}'".format(actioninfo["name"], codeline), shell=True)
+						subprocess.run("funktion create fn -n '{}' -s '{}'".format(actioninfo["name"], codeline), shell=True)
 
 	def import_gfunctions(self):
 		proc = subprocess.run("gcloud beta functions list", stdout=subprocess.PIPE, shell=True)
