@@ -8,6 +8,7 @@ import json
 import os
 import sys
 import lib.snafu
+import tempfile
 
 class SnafuImportUtility:
 	def __init__(self):
@@ -16,7 +17,7 @@ class SnafuImportUtility:
 	def start_import(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service - Import Utility")
 		parser.add_argument("-s", "--source", help="import source", choices=["lambda", "gfunctions", "openwhisk"], default=None)
-		parser.add_argument("-t", "--target", help="import target", choices=["snafu", "funktion"], default="snafu")
+		parser.add_argument("-t", "--target", help="import target", choices=["snafu", "funktion", "fission"], default="snafu")
 		parser.add_argument("-c", "--convert", help="convert functions from Python 2 to Python 3 for native execution")
 		args = parser.parse_args()
 
@@ -25,9 +26,9 @@ class SnafuImportUtility:
 		if args.source is None:
 			print("Must specify a source with --source.", file=sys.stderr)
 		elif args.source == "lambda":
-			self.import_lambda(args.convert)
+			self.import_lambda(args.target, args.convert)
 		elif args.source == "gfunctions":
-			self.import_gfunctions()
+			self.import_gfunctions(args.target)
 		elif args.source == "openwhisk":
 			self.import_openwhisk(args.target)
 
@@ -51,10 +52,13 @@ class SnafuImportUtility:
 				actioninfo = json.loads(out)
 				code = actioninfo["exec"]
 				filename = None
+				env = None
 				if code["kind"] == "nodejs" or code["kind"] == "nodejs:6":
 					filename = actioninfo["name"] + ".js"
+					env = "nodejs"
 				elif code["kind"] == "python" or code["kind"] == "python:2":
 					filename = actioninfo["name"] + ".py"
+					env = "python"
 				else:
 					print("- skip ({})".format(code["kind"]))
 				if filename:
@@ -67,8 +71,14 @@ class SnafuImportUtility:
 					elif target == "funktion":
 						codeline = code["code"].replace("\n", "\\n")
 						subprocess.run("funktion create fn -n '{}' -s '{}'".format(actioninfo["name"], codeline), shell=True)
+					elif target == "funktion":
+						f = tempfile.NamedTemporaryFile()
+						f.write(code["code"])
+						f.flush()
+						codefile = f.name
+						subprocess.run("fission function create --name '{}' --env {} --code '{}'".format(actioninfo["name"], env, codefile), shell=True)
 
-	def import_gfunctions(self):
+	def import_gfunctions(self, target):
 		proc = subprocess.run("gcloud beta functions list", stdout=subprocess.PIPE, shell=True)
 		out = proc.stdout.decode("utf-8")
 		functiondir = lib.snafu.SnafuImport.functiondir
@@ -92,7 +102,7 @@ class SnafuImportUtility:
 						codefile, configfile, oldcodefile = lib.snafu.SnafuImport.importfunction(funcname, codezip, None, False)
 						print("+ code: {}".format(codefile))
 
-	def import_lambda(self, convert):
+	def import_lambda(self, target, convert):
 		proc = subprocess.run("aws lambda list-functions", stdout=subprocess.PIPE, shell=True)
 		out = proc.stdout.decode("utf-8")
 		functions = json.loads(out)
