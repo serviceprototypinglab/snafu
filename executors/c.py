@@ -12,6 +12,11 @@ def execute(func, funcargs, envvars, sourceinfos):
 	out, err = subprocess.Popen(ccmd, shell=True, stdout=subprocess.PIPE).communicate()
 	dtime = (time.time() - stime) * 1000
 
-	out = out.decode("utf-8").split("\n")[-2]
+	try:
+		out = out.decode("utf-8").split("\n")[-2]
+		success = True
+	except:
+		out = ""
+		success = False
 
-	return dtime, True, out
+	return dtime, success, out

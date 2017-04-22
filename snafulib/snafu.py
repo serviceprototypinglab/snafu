@@ -333,7 +333,7 @@ class Snafu:
 					print("» c source:", source)
 				pwd = os.getcwd()
 				os.chdir(os.path.dirname(source))
-				os.system("gcc -shared -o {} {}".format(os.path.basename(binfile), os.path.basename(source)))
+				os.system("gcc -Wall -O2 -fPIC -shared -o {} {}".format(os.path.basename(binfile), os.path.basename(source)))
 				os.chdir(pwd)
 				source = binfile
 			else:
@@ -342,7 +342,7 @@ class Snafu:
 		if not self.quiet:
 			print("» c module:", source)
 
-		funcname = "handler"
+		funcname = os.path.basename(source).replace(".", "_") + ".handler"
 		funcparams = ["input"]
 		if not self.quiet:
 			print("  function: {} (unchecked)".format(funcname))
