@@ -1,6 +1,7 @@
 # python3 setup.py sdist
 # python3 setup.py bdist_wheel
 # python3 setup.py bdist_egg
+# twine upload dist/*.*
 
 from setuptools import setup
 import os
@@ -14,7 +15,8 @@ def findfiles(pathlist):
 
 setup(
 	name="snafu",
-	version="0.0.0",
+	description="Swiss Army Knife of Serverless Computing",
+	version="0.0.0.post2",
 	url="https://github.com/serviceprototypinglab/snafu",
 	author="Josef Spillner",
 	author_email="josef.spillner@zhaw.ch",
