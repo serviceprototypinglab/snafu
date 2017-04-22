@@ -1,4 +1,13 @@
 from setuptools import setup
+import os
+
+def findfiles(pathlist):
+	for path in pathlist:
+		for dirpath, dirnames, files in os.walk(path):
+			for f in files:
+				if not f.endswith(".pyc") and not f.endswith(".class"):
+					yield os.path.join(dirpath, f)
+
 setup(
 	name="snafu",
 	version="0.0.0",
@@ -17,7 +26,9 @@ setup(
 	],
 	keywords="cloud faas serverless functions",
 	packages=["snafulib"],
-	scripts=["snafu", "snafu-import", "snafu-accounts", "snafu-control"]
+	scripts=["snafu", "snafu-import", "snafu-accounts", "snafu-control"],
+	data_files=[(os.path.dirname(f), [f]) for f in findfiles(["executors", "loggers", "authenticators", "connectors"])],
+	install_requires=["flask"]
 	#entry_points={
 	#	"console_scripts": [
 	#		"snafu=snafu:main",
