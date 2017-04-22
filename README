@@ -108,6 +108,7 @@ Executors
 * python3 (external)
 * java (external, under development)
 * javascript (external, under development)
+* c (external, under development)
 
 Forwarders (only in snafu-control, as pseudo-executors)
 -------------------------------------------------------
