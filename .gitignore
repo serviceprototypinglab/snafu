@@ -4,3 +4,7 @@ snafu.ini
 functions-local
 functions-tenants
 _*
+
+build/
+dist/
+snafu.egg-info/
