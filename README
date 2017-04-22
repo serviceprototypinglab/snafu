@@ -84,6 +84,9 @@ http://localhost:10000.
 
 # e.g. ./snafu-control --reaper --deployer --authenticator aws
 
+The file snafu.ini.dist can be copied to snafu.ini to customise the
+configuration of Snafu.
+
 Connectors (only in snafu)
 --------------------------
 * cli (interactive function name choice; payload asked or read from
