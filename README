@@ -131,7 +131,8 @@ providers.
 
 Furthermore, a Python package is made available on PyPI.
 
-% pip install snafu
+% # pip install snafu # currently not working
+% easy_install -Z snafu
 
 Research and Further Reading
 ----------------------------
