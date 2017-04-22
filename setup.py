@@ -16,13 +16,14 @@ setup(
 		"Topic :: Internet :: WWW/HTTP :: WSGI :: Middleware"
 	],
 	keywords="cloud faas serverless functions",
-	packages=["snafu"],
-	entry_points={
-		"console_scripts": [
-			"snafu=snafu:main",
-			"snafu-import=snafuimport:main",
-			"snafu-control=snafucontrol:main",
-			"snafu-accounts=snafuaccounts:main"
-		]
-	}
+	packages=["snafulib"],
+	scripts=["snafu", "snafu-import", "snafu-accounts", "snafu-control"]
+	#entry_points={
+	#	"console_scripts": [
+	#		"snafu=snafu:main",
+	#		"snafu-import=snafuimport:main",
+	#		"snafu-control=snafucontrol:main",
+	#		"snafu-accounts=snafuaccounts:main"
+	#	]
+	#}
 )
