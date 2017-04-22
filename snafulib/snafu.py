@@ -166,7 +166,7 @@ class Snafu:
 				keys = ",".join(envvars.keys())
 				self.info("config:environment:{}".format(keys))
 
-		if "java" in self.executormods[0].__name__ or "javascript" in self.executormods[0].__name__:
+		if "java" in self.executormods[0].__name__ or "javascript" in self.executormods[0].__name__ or "c" in self.executormods[0].__name__:
 			#wantedargs = []
 			func, *wantedargs = func
 		else:
@@ -287,7 +287,7 @@ class Snafu:
 			os.system("javac JavaExec.java")
 			os.chdir(pwd)
 
-		if source.endswith("java"):
+		if source.endswith(".java"):
 			binfile = source.replace(".java", ".class")
 			if not os.path.isfile(binfile):
 				if not self.quiet:
@@ -318,6 +318,36 @@ class Snafu:
 				print("  function: {}".format(funcname))
 			sourceinfos = SnafuFunctionSource(source, scan=False)
 			self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
+
+	def activatecfile(self, source, convention):
+		if not os.path.isfile("executors/java/cexec"):
+			pwd = os.getcwd()
+			os.chdir("executors/c")
+			os.system("gcc -Wall -O2 -ldl -o cexec cexec.c")
+			os.chdir(pwd)
+
+		if source.endswith(".c"):
+			binfile = source.replace(".c", ".so")
+			if not os.path.isfile(binfile):
+				if not self.quiet:
+					print("» c source:", source)
+				pwd = os.getcwd()
+				os.chdir(os.path.dirname(source))
+				os.system("gcc -Wall -O2 -fPIC -shared -o {} {}".format(os.path.basename(binfile), os.path.basename(source)))
+				os.chdir(pwd)
+				source = binfile
+			else:
+				return
+
+		if not self.quiet:
+			print("» c module:", source)
+
+		funcname = os.path.basename(source).replace(".", "_") + ".handler"
+		funcparams = ["input"]
+		if not self.quiet:
+			print("  function: {} (unchecked)".format(funcname))
+		sourceinfos = SnafuFunctionSource(source, scan=False)
+		self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
 
 	def activatefile(self, source, convention):
 		sourceinfos = None
@@ -390,6 +420,8 @@ class Snafu:
 					self.activatefile(source, convention)
 				elif source.endswith(".java") or source.endswith(".class"):
 					self.activatejavafile(source, convention)
+				elif source.endswith(".c") or source.endswith(".so"):
+					self.activatecfile(source, convention)
 				elif source.endswith(".js"):
 					self.activatejavascriptfile(source, convention)
 			elif os.path.isdir(source):
@@ -405,7 +437,7 @@ class SnafuRunner:
 		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
 		parser.add_argument("-l", "--logger", help="function loggers; 'csv' by default", choices=["csv", "sqlite", "none"], default=["csv"], nargs="+")
-		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3", "javascript"], default="inmemory")
+		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3", "javascript", "c"], default="inmemory")
 
 	def __init__(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service")
