@@ -1,19 +1,24 @@
 Snafu: Snake Functions
 =========================================================
 
-Snafu is a tiny flexible Function-as-a-Service (FaaS) host process for
-Python. Snafu is unique in reducing the effort to get going (no
-configuration is required, although a configuration file is available
-for optional customisation), in choosing the execution model (with and
-without isolation for instance) and in exposure of functions.
+Snafu is a tiny flexible Function-as-a-Service (FaaS) host process and
+tool for Python and other programming languages. Snafu is unique in
+reducing the effort to get going (no configuration is required, although
+a configuration file is available for optional customisation), in
+choosing the execution model (with and without isolation for instance),
+in exposure of functions, and in integration with other FaaS runtimes
+and commercial services.
 
-Functions are read from specified Python source files. If no directory
-is specified, 'functions' with some sample functions as well as
+Think of it as the 'Swiss Army Knife of Serverless Computing'!
+
+Functions are read from specified source files. If no directory is
+specified, 'functions' with some sample functions as well as
 'functions-local' for user-imported functions are scanned. The set of
 exported functions consists of all of them (convention name: any) or
 just one pre-defined function by default named 'lambda_handler' with
 specific arguments, for compatibility with AWS Lambda's Python 2.7
-runtime (convention name: 'lambda').
+runtime (convention name: 'lambda'). For languages requiring compilation
+(i.e. Java), this is attempted transparently.
 
 Functions are invoked through connectors, for instance HTTP requests or
 interactive command-line input or both at the same time. They correspond
@@ -22,16 +27,24 @@ instance CSV files. They are furthermore checked against authenticators.
 All connectors, loggers, executors and authenticators are described
 below.
 
-The utility script 'snafu-import' exists to slurp Lambda functions and
-configurations for execution with Snafu. Configuration support is
-limited to environment variables at the moment. Configuration files are
-read as *.config associated to *.py. In their absence, the handler name
-(<source>.<function>) becomes the function name.
+The utility script 'snafu-import' exists to slurp Lambda, OpenWhisk and
+Google Cloud functions and configurations for execution with Snafu or to
+some extent with other FaaS runtimes.
+Configuration support is limited to environment variables at the moment.
+Configuration files are read as *.config associated to *.py. In their
+absence, the handler name (<source>.<function>) becomes the function
+name.
+
+The daemon 'snafu-control' implements a FaaS control plane in partial
+compliance to Lambda, OpenWhisk and Google Cloud Functions so that the
+respective command-line tools (aws, wsk, gcloud) can be used against it.
 
 Snafu is implemented in Python 3 so that any Lambda functions need to be
 passed through the 2to3 tool which 'snafu-import' can automate. It is
 expected that Python 3 will be added to Lambda in the near future,
-making this step then obsolete.
+making this step then obsolete. Alternatively, out-of-process execution
+exists for all supported programming languages, including Python 3 for
+improved parallel execution performance.
 
 The runtime and success status of invoked functions are measured through
 the loggers and can be further processed for statistical analysis and
@@ -39,17 +52,23 @@ billing purposes.
 
 Usage
 -----
-Snafu runs until interrupted with Ctrl+C.
+Snafu runs interactively until interrupted with Ctrl+C.
 
 % ./snafu [-h]
+% ./snafu --executor <e> --logger <l> --convention <c>
 
-To fill up the functions pool with some already deployed in Lambda, use
-the import script.
+# e.g. ./snafu --executor python2stateful --logger sqlite
 
-% ./snafu-import [--convert]
+To fill up the functions pool with some already deployed in AWS, IBM or
+Google, use the import utility.
 
-Apart from hosting the functions, Snafu can also be used as Swiss army
-knife of serverless computing. For instance:
+% ./snafu-import [--convert] [--source <s>] [--target <t>]
+
+# e.g. --source gfunctions: deploy from Google into Snafu
+# e.g. --source openwhisk --target funktion: from IBM into Funktion
+
+Apart from hosting the functions, Snafu can also be used in batch
+processing to test functions systematically. For instance:
 
 % echo "{}" | ./snafu -x lambda_function.lambda_handler
 
@@ -57,9 +76,13 @@ The control plane 'snafu-control' implements essential functionality
 found in the Lambda control plane via Snafu. Use aws-cli with the option
 --endpoint-url to redirect all requests to your instance (by default, it
 runs on http://localhost:10000/). It is highly recommended to add
---cli-read-timeout 0 as well.
+--cli-read-timeout 0 as well. The gcloud tool needs patching
+(tools/patch-gcloud), the wsk tool needs --apihost set to
+http://localhost:10000.
 
 % ./snafu-control [-h]
+
+# e.g. ./snafu-control --reaper --deployer --authenticator aws
 
 Connectors (only in snafu)
 --------------------------
@@ -82,7 +105,9 @@ Executors
 * inmemstateless (higher isolation level through module reload)
 * python2 (external
 * python2stateful (re-used instance with lower isolation level)
+* python3 (external)
 * java (external, under development)
+* javascript (external, under development)
 
 Forwarders (only in snafu-control, as pseudo-executors)
 -------------------------------------------------------
@@ -98,9 +123,24 @@ Authenticators (only in snafu-control)
 Packaged Snafu
 --------------
 A containerised version is made available for running Snafu in a Docker
-environment.
+environment. The image is complete rather than minimal and includes
+among others the command-line tools of several commercial FaaS
+providers.
 
 % docker run -ti jszhaw/snafu
+
+Furthermore, a Python package is made available on PyPI.
+
+% pip install snafu
+
+Research and Further Reading
+----------------------------
+Snafu results from service tooling research at the Service Prototyping
+Lab at Zurich University of Applied Sciences. Preprints and
+peer-reviewed papers analyse the tool's characteristics and compare it
+with other FaaS runtimes. While not recommended for production use,
+these publications may give inspiration for using Snafu in prototyping
+and piloting settings.
 
 Licence
 -------
