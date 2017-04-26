@@ -5,12 +5,15 @@ import subprocess
 import json
 import os
 import sys
-import snafulib.snafu
 import tempfile
+import glob
+import uuid
+
+import snafulib.snafu
 
 class SnafuImportUtility:
 	def __init__(self):
-		pass
+		self.td = tempfile.TemporaryDirectory()
 
 	def start_import(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service - Import Utility")
@@ -29,6 +32,81 @@ class SnafuImportUtility:
 			self.import_gfunctions(args.target)
 		elif args.source == "openwhisk":
 			self.import_openwhisk(args.target)
+
+	def export_snafu(self, filename, code, name, env):
+		#codefile, configfile, oldcodefile = snafulib.snafu.SnafuImport.importfunction(actioninfo["name"], None, x, False)
+		codefile = os.path.join(snafulib.snafu.SnafuImport.functiondir, filename)
+		f = open(codefile, "w")
+		f.write(code)
+		print("+ code: {}".format(codefile))
+
+	def export_snafu_zip(self, filename, code, name, env, config=None, convert=False):
+		codefile, configfile, oldcodefile = snafulib.snafu.SnafuImport.importfunction(name, filename, config, convert)
+		print("+ code: {}".format(codefile))
+		print("+ configuration: {}".format(configfile))
+		if oldcodefile:
+			print("+ converted; old code: {}".format(oldcodefile))
+
+	def archivedfile(self, filename):
+		td = os.path.join(self.td.name, str(uuid.uuid4()))
+		os.makedirs(td, exist_ok=True)
+		cwd = os.getcwd()
+		subprocess.run("cd {} && unzip -o -q {}".format(td, os.path.join(cwd, filename)), shell=True)
+		codefiles = glob.glob(os.path.join(td, "*.py"))
+		if len(codefiles) == 0:
+			codefiles = glob.glob(os.path.join(td, "*.java"))
+		if len(codefiles) == 0:
+			codefiles = glob.glob(os.path.join(td, "*.class"))
+		if len(codefiles) == 0:
+			codefiles = glob.glob(os.path.join(td, "*.js"))
+		return codefiles
+
+	def export_funktion(self, filename, code, name, env):
+		if not code:
+			codefiles = self.archivedfile(filename)
+			if len(codefiles) == 1:
+				filename = codefiles[0]
+				code = open(filename).read()
+			else:
+				print("- skip archive: ambiguous contents ({})".format(codefiles))
+				return
+		codeline = code.replace("\n", "\\n")
+		subprocess.run("funktion create fn -n '{}' -s '{}'".format(name, codeline), shell=True)
+		print("+ code: {} (in funktion)".format(os.path.basename(filename)))
+
+	def export_fission(self, filename, code, name, env):
+		if not code:
+			codefiles = self.archivedfile(filename)
+			if len(codefiles) == 1:
+				filename = codefiles[0]
+				code = open(filename).read()
+			else:
+				print("- skip archive: ambiguous contents ({})".format(codefiles))
+				return
+		f = tempfile.NamedTemporaryFile()
+		f.write(bytes(code, "utf-8"))
+		f.flush()
+		codefile = f.name
+		subprocess.run("fission function create --name '{}' --env {} --code '{}'".format(name, env, codefile), shell=True)
+		print("+ code: {} (in fission)".format(os.path.basename(filename)))
+
+	def export_kubeless(self, filename, code, name, env):
+		if not code:
+			codefiles = self.archivedfile(filename)
+			if len(codefiles) == 1:
+				filename = codefiles[0]
+				code = open(filename).read()
+			else:
+				print("- skip archive: ambiguous contents ({})".format(codefiles))
+				return
+		f = tempfile.NamedTemporaryFile()
+		f.write(bytes(code, "utf-8"))
+		f.flush()
+		codefile = f.name
+		mangledname = name.replace(" ", "-").lower()
+		handler = os.path.basename(codefile) + ".main"
+		subprocess.run("kubeless function deploy '{}' --runtime {} --handler '{}' --from-file '{}' --trigger-http".format(mangledname, env, handler, codefile), shell=True)
+		print("+ code: {} (in kubeless)".format(os.path.basename(filename)))
 
 	def import_openwhisk(self, target):
 		proc = subprocess.run("wsk list", stdout=subprocess.PIPE, shell=True)
@@ -59,30 +137,16 @@ class SnafuImportUtility:
 					env = "python"
 				else:
 					print("- skip ({})".format(code["kind"]))
+
 				if filename:
 					if target == "snafu":
-						#codefile, configfile, oldcodefile = snafulib.snafu.SnafuImport.importfunction(actioninfo["name"], None, x, False)
-						codefile = os.path.join(snafulib.snafu.SnafuImport.functiondir, filename)
-						f = open(codefile, "w")
-						f.write(code["code"])
-						print("+ code: {}".format(codefile))
+						self.export_snafu(filename, code["code"], actioninfo["name"], env)
 					elif target == "funktion":
-						codeline = code["code"].replace("\n", "\\n")
-						subprocess.run("funktion create fn -n '{}' -s '{}'".format(actioninfo["name"], codeline), shell=True)
+						self.export_funktion(filename, code["code"], actioninfo["name"], env)
 					elif target == "fission":
-						f = tempfile.NamedTemporaryFile()
-						f.write(bytes(code["code"], "utf-8"))
-						f.flush()
-						codefile = f.name
-						subprocess.run("fission function create --name '{}' --env {} --code '{}'".format(actioninfo["name"], env, codefile), shell=True)
+						self.export_fission(filename, code["code"], actioninfo["name"], env)
 					elif target == "kubeless":
-						f = tempfile.NamedTemporaryFile()
-						f.write(bytes(code["code"], "utf-8"))
-						f.flush()
-						codefile = f.name
-						mangledname = actioninfo["name"].replace(" ", "-").lower()
-						handler = os.path.basename(codefile) + ".main"
-						subprocess.run("kubeless function deploy '{}' --runtime {} --handler '{}' --from-file '{}' --trigger-http".format(mangledname, env, handler, codefile), shell=True)
+						self.export_kubeless(filename, code["code"], actioninfo["name"], env)
 
 	def import_gfunctions(self, target):
 		proc = subprocess.run("gcloud beta functions list", stdout=subprocess.PIPE, shell=True)
@@ -105,8 +169,17 @@ class SnafuImportUtility:
 						codezip = os.path.join(snafulib.snafu.SnafuImport.functiondir, "..", os.path.basename(funccode))
 						proc = subprocess.run("gsutil -q cp {} {}".format(funccode, codezip), stdout=subprocess.PIPE, shell=True)
 
-						codefile, configfile, oldcodefile = snafulib.snafu.SnafuImport.importfunction(funcname, codezip, None, False)
-						print("+ code: {}".format(codefile))
+						# FIXME: read and assign runtime
+						env = "python"
+
+						if target == "snafu":
+							self.export_snafu_zip(codezip, None, funcname, env)
+						elif target == "funktion":
+							self.export_funktion(codezip, None, funcname, env)
+						elif target == "fission":
+							self.export_fission(codezip, None, funcname, env)
+						elif target == "kubeless":
+							self.export_kubeless(codezip, None, funcname, env)
 
 	def import_lambda(self, target, convert):
 		proc = subprocess.run("aws lambda list-functions", stdout=subprocess.PIPE, shell=True)
@@ -122,14 +195,25 @@ class SnafuImportUtility:
 			function = json.loads(out)
 			funccode = function["Code"]["Location"]
 			codezip = os.path.join(snafulib.snafu.SnafuImport.functiondir, "..", funcname + ".zip")
+			os.makedirs(snafulib.snafu.SnafuImport.functiondir, exist_ok=True)
 			subprocess.run("wget -q -O {} '{}'".format(codezip, funccode), shell=True)
 
-			codefile, configfile, oldcodefile = snafulib.snafu.SnafuImport.importfunction(funcname, codezip, func, convert)
+			env = None
+			runtime = func["Runtime"]
+			if runtime == "python2.7":
+				env = "python"
+			else:
+				print("- skip ({})".format(runtime))
 
-			print("+ code: {}".format(codefile))
-			print("+ configuration: {}".format(configfile))
-			if oldcodefile:
-				print("+ converted; old code: {}".format(oldcodefile))
+			if env:
+				if target == "snafu":
+					self.export_snafu_zip(codezip, None, funcname, env, func, convert)
+				elif target == "funktion":
+					self.export_funktion(codezip, None, funcname, env)
+				elif target == "fission":
+					self.export_fission(codezip, None, funcname, env)
+				elif target == "kubeless":
+					self.export_kubeless(codezip, None, funcname, env)
 
 class SnafuImportRunner:
 	def __init__(self):
