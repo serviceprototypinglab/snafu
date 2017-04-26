@@ -124,6 +124,11 @@ Authenticators (only in snafu-control)
 * aws (AWS4 signature algorithm)
 * (none)
 
+Import/Export
+-------------
+* imports: from Google Cloud Functions, OpenWhisk, AWS Lambda
+* exports: to Funktion, Fission, Kubeless + of course Snafu
+
 Packaged Snafu
 --------------
 A containerised version is made available for running Snafu in a Docker

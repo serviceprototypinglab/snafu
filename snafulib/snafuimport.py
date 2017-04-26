@@ -15,7 +15,7 @@ class SnafuImportUtility:
 	def start_import(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service - Import Utility")
 		parser.add_argument("-s", "--source", help="import source", choices=["lambda", "gfunctions", "openwhisk"], default=None)
-		parser.add_argument("-t", "--target", help="import target", choices=["snafu", "funktion", "fission"], default="snafu")
+		parser.add_argument("-t", "--target", help="import target", choices=["snafu", "funktion", "fission", "kubeless"], default="snafu")
 		parser.add_argument("-c", "--convert", help="convert functions from Python 2 to Python 3 for native execution")
 		args = parser.parse_args()
 
@@ -69,12 +69,20 @@ class SnafuImportUtility:
 					elif target == "funktion":
 						codeline = code["code"].replace("\n", "\\n")
 						subprocess.run("funktion create fn -n '{}' -s '{}'".format(actioninfo["name"], codeline), shell=True)
-					elif target == "funktion":
+					elif target == "fission":
 						f = tempfile.NamedTemporaryFile()
-						f.write(code["code"])
+						f.write(bytes(code["code"], "utf-8"))
 						f.flush()
 						codefile = f.name
 						subprocess.run("fission function create --name '{}' --env {} --code '{}'".format(actioninfo["name"], env, codefile), shell=True)
+					elif target == "kubeless":
+						f = tempfile.NamedTemporaryFile()
+						f.write(bytes(code["code"], "utf-8"))
+						f.flush()
+						codefile = f.name
+						mangledname = actioninfo["name"].replace(" ", "-").lower()
+						handler = os.path.basename(codefile) + ".main"
+						subprocess.run("kubeless function deploy '{}' --runtime {} --handler '{}' --from-file '{}' --trigger-http".format(mangledname, env, handler, codefile), shell=True)
 
 	def import_gfunctions(self, target):
 		proc = subprocess.run("gcloud beta functions list", stdout=subprocess.PIPE, shell=True)
