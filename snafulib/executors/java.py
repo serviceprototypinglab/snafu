@@ -14,7 +14,7 @@ def execute(func, funcargs, envvars, sourceinfos):
 	#print(">> call", classname, methodname, func, funcargs, envvars, sourceinfos.source)
 
 	#classname, methodname = func.split(".")
-	javacmd = "java -cp executors/java/:{} JavaExec {} {} {}".format(os.path.dirname(sourceinfos.source), classname, methodname, " ".join(funcargs))
+	javacmd = "java -cp snafulib/executors/java/:{} JavaExec {} {} {}".format(os.path.dirname(sourceinfos.source), classname, methodname, " ".join(funcargs))
 	#print(">> javacmd", javacmd)
 	stime = time.time()
 	out, err = subprocess.Popen(javacmd, shell=True, stdout=subprocess.PIPE).communicate()

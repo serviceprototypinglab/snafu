@@ -22,7 +22,7 @@ def execute(func, funcargs, envvars, sourceinfos):
 		tf.write(bytes(funcargs, "utf-8"))
 		funcargs = "tempfile:" + tf.name
 
-	p = subprocess.run("python2 executors/python2-exec.py {} {} '{}' '{}'".format(sourceinfos.source, func.__name__, funcargs, envvars), stdout=subprocess.PIPE, shell=True)
+	p = subprocess.run("python2 snafulib/executors/python2-exec.py {} {} '{}' '{}'".format(sourceinfos.source, func.__name__, funcargs, envvars), stdout=subprocess.PIPE, shell=True)
 
 	try:
 		dtime, success, *res = p.stdout.decode("utf-8").strip().split(" ")

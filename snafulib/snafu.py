@@ -252,33 +252,44 @@ class Snafu:
 			print("» javascript module:", source)
 
 		try:
-			import pyesprima.pyesprima
+			import pyesprima.pyesprima3
 		except:
-			print("Warning: {} parser not ready, skipping.".format(source), file=sys.stderr)
+			if not self.quiet:
+				print("Warning: javascript parser not ready for {}, skipping.".format(source), file=sys.stderr)
 			return
 
-		pyesprima.pyesprima.unichr = chr
+		#pyesprima.pyesprima3.unichr = chr
 
 		try:
-			ast = pyesprima.pyesprima.parse(open(source).read())
+			ast = pyesprima.pyesprima3.parse(open(source).read())
 		except:
-			print("Warning: {} is not parseable, skipping.".format(source), file=sys.stderr)
+			if not self.quiet:
+				print("Warning: {} is not parseable, skipping.".format(source), file=sys.stderr)
 			return
 
 		for body in ast.body:
-			if body["type"] == "FunctionDeclaration":
-				#print("ast function detected: " + body["id"]["name"])
-				#process(body, body["id"]["name"])
-				pass
-			if body.type == "ExpressionStatement":
+			if body.type == "FunctionDeclaration":
+				funcname = body["id"]["name"]
+				if funcname == "main":
+					funcname = os.path.basename(source).split(".")[0] + "." + funcname
+					if not self.quiet:
+						print("  function: {}".format(funcname))
+					sourceinfos = SnafuFunctionSource(source, scan=False)
+					funcparams = ["input"]
+					self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
+				else:
+					if not self.quiet:
+						print("  skip function {}".format(funcname))
+			elif body.type == "ExpressionStatement":
 				if body.expression.left.type == "MemberExpression":
 					if body.expression.left.object.name == "exports":
 						funcname = body.expression.left.property.name
+						funcname = os.path.basename(source).split(".")[0] + "." + funcname
 						if not self.quiet:
 							print("  function: {}".format(funcname))
-							sourceinfos = SnafuFunctionSource(source, scan=False)
-							funcparams = ["req", "res"]
-							self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
+						sourceinfos = SnafuFunctionSource(source, scan=False)
+						funcparams = ["req", "res"]
+						self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
 
 	def activatejavafile(self, source, convention):
 		if not os.path.isfile("snafulib/executors/java/JavaExec.class"):
@@ -306,7 +317,7 @@ class Snafu:
 		#javacmd = "java -cp executors/java/:{} JavaExec {} fib 3".format(os.path.dirname(source), os.path.basename(source).split(".")[0])
 		#javacmd = "java JavaExec Hello myHandler 5 null"
 		#print("JAVA", javacmd)
-		javacmd = "java -cp executors/java/:{} JavaExec {} SCAN".format(os.path.dirname(source), os.path.basename(source).split(".")[0])
+		javacmd = "java -cp snafulib/executors/java/:{} JavaExec {} SCAN".format(os.path.dirname(source), os.path.basename(source).split(".")[0])
 		#os.system(javacmd)
 		out, err = subprocess.Popen(javacmd, shell=True, stdout=subprocess.PIPE).communicate()
 		for funcname in out.decode("utf-8").split("\n"):

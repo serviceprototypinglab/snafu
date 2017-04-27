@@ -16,7 +16,7 @@ def execute(func, funcargs, envvars, sourceinfos):
 	funcargs = json.dumps(funcargs)
 	envvars = json.dumps(envvars)
 
-	p = subprocess.run("python3 executors/python3-exec.py {} {} '{}' '{}'".format(sourceinfos.source, func.__name__, funcargs, envvars), stdout=subprocess.PIPE, shell=True)
+	p = subprocess.run("python3 snafulib/executors/python3-exec.py {} {} '{}' '{}'".format(sourceinfos.source, func.__name__, funcargs, envvars), stdout=subprocess.PIPE, shell=True)
 
 	try:
 		dtime, success, *res = p.stdout.decode("utf-8").strip().split(" ")
