@@ -411,15 +411,19 @@ class Snafu:
 					funcname = sourcename + "." + node.name
 					if config and "FunctionName" in config and convention == "lambda":
 						funcname = config["FunctionName"]
-					if not self.quiet:
-						print("  function: {}".format(funcname))
-					func = getattr(mod, node.name)
-					#if not node.name in self.functions:
-					#	self.functions[node.name] = {}
-					#self.functions[node.name][sourcename] = (func, config, sourceinfos)
-					self.functions[funcname] = (func, config, sourceinfos)
-					if connectorconfig:
-						self.functionconnectors[funcname] = connectorconfig
+					try:
+						func = getattr(mod, node.name)
+					except:
+						print("  skip method {}.{}".format(sourcename, node.name))
+					else:
+						if not self.quiet:
+							print("  function: {}".format(funcname))
+						#if not node.name in self.functions:
+						#	self.functions[node.name] = {}
+						#self.functions[node.name][sourcename] = (func, config, sourceinfos)
+						self.functions[funcname] = (func, config, sourceinfos)
+						if connectorconfig:
+							self.functionconnectors[funcname] = connectorconfig
 				else:
 					if not self.quiet:
 						print("  skip function {}.{}".format(sourcename, node.name))
