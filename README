@@ -50,6 +50,12 @@ The runtime and success status of invoked functions are measured through
 the loggers and can be further processed for statistical analysis and
 billing purposes.
 
+Requirements
+------------
+Python 3 is required. For the full functionality, install the 'flask'
+and 'pyesprima3' modules as well as compilers and interpreters for all
+supported languages (i.e. python2, python3, nodejs, gcc, javac/java).
+
 Usage
 -----
 Snafu runs interactively until interrupted with Ctrl+C.
@@ -140,8 +146,7 @@ providers.
 
 Furthermore, a Python package is made available on PyPI.
 
-% # pip install snafu # currently not working
-% easy_install -Z snafu
+% pip install snafu
 
 Research and Further Reading
 ----------------------------
