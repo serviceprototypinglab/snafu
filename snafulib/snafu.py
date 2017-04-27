@@ -166,7 +166,7 @@ class Snafu:
 				keys = ",".join(envvars.keys())
 				self.info("config:environment:{}".format(keys))
 
-		if "java" in self.executormods[0].__name__ or "javascript" in self.executormods[0].__name__ or "c" in self.executormods[0].__name__:
+		if ".java" in self.executormods[0].__name__ or ".javascript" in self.executormods[0].__name__ or ".c" in self.executormods[0].__name__:
 			#wantedargs = []
 			func, *wantedargs = func
 		else:
