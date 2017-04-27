@@ -99,7 +99,7 @@ class Snafu:
 
 		self.executormods = []
 		for executor in executors:
-			mod = importlib.import_module("executors." + executor)
+			mod = importlib.import_module("snafulib.executors." + executor)
 			self.executormods.append(mod)
 
 	def setuploggers(self, loggers):
@@ -112,7 +112,7 @@ class Snafu:
 
 		self.loggermods = []
 		for logger in loggers:
-			mod = importlib.import_module("loggers." + logger)
+			mod = importlib.import_module("snafulib.loggers." + logger)
 			self.loggermods.append(mod)
 
 	def alert(self, s):
@@ -220,7 +220,7 @@ class Snafu:
 
 		connectormods = []
 		for connector in connectors:
-			mod = importlib.import_module("connectors." + connector)
+			mod = importlib.import_module("snafulib.connectors." + connector)
 			connectormods.append(mod)
 
 		for connectormod in connectormods:
@@ -281,9 +281,9 @@ class Snafu:
 							self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
 
 	def activatejavafile(self, source, convention):
-		if not os.path.isfile("executors/java/JavaExec.class"):
+		if not os.path.isfile("snafulib/executors/java/JavaExec.class"):
 			pwd = os.getcwd()
-			os.chdir("executors/java")
+			os.chdir("snafulib/executors/java")
 			os.system("javac JavaExec.java")
 			os.chdir(pwd)
 
@@ -320,9 +320,9 @@ class Snafu:
 			self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
 
 	def activatecfile(self, source, convention):
-		if not os.path.isfile("executors/java/cexec"):
+		if not os.path.isfile("snafulib/executors/java/cexec"):
 			pwd = os.getcwd()
-			os.chdir("executors/c")
+			os.chdir("snafulib/executors/c")
 			os.system("gcc -Wall -O2 -ldl -o cexec cexec.c")
 			os.chdir(pwd)
 

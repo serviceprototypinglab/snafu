@@ -468,7 +468,7 @@ class SnafuControl:
 
 		SnafuControl.authenticatormods = []
 		for authenticator in authenticators:
-			mod = importlib.import_module("authenticators." + authenticator)
+			mod = importlib.import_module("snafulib.authenticators." + authenticator)
 			SnafuControl.authenticatormods.append(mod)
 
 	def run(self):
