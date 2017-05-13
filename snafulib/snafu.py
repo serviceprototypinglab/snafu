@@ -91,6 +91,7 @@ class Snafu:
 		#self.isolation = isolation
 		self.executormods = []
 		self.functionconnectors = {}
+		self.threads = []
 
 	def setupexecutors(self, executors):
 		if not self.quiet:
@@ -134,6 +135,15 @@ class Snafu:
 		print(col_on + "[{:.3f}][{}][{}]".format(timestamp, callid, s) + col_off)
 
 	def execute(self, funcname, **kwargs):
+		asynccall = False
+		funcnameargs = funcname.split(" ")
+		if len(funcnameargs) > 1:
+			for funcnamearg in funcnameargs:
+				if funcnamearg == "async":
+					asynccall = True
+				else:
+					funcname = funcnamearg
+
 		sourcename = None
 		if "." in funcname:
 			sourcename, funcnamepart = funcname.split(".")
@@ -195,10 +205,26 @@ class Snafu:
 					self.alert("Error: Data for argument {} needed but not supplied.".format(wantedarg))
 					return
 
+		if asynccall:
+			self.info("async...")
+			self.executeasync(func, funcargs, envvars, sourceinfos, sourcename, funcname)
+			return
+
+		return self.executeasyncthread(func, funcargs, envvars, sourceinfos, sourcename, funcname)
+
+	def executeasync(self, func, funcargs, envvars, sourceinfos, sourcename, funcname):
+		t = threading.Thread(target=self.executeasyncthread, args=(func, funcargs, envvars, sourceinfos, sourcename, funcname))
+		t.setDaemon(True)
+		t.start()
+
+		self.threads.append(t)
+
+	def executeasyncthread(self, func, funcargs, envvars, sourceinfos, sourcename, funcname):
 		stime = time.time()
 		dtime, success, res = self.executormods[0].execute(func, funcargs, envvars, sourceinfos)
 		otime = (time.time() - stime) * 1000
 
+		self.info("response:{}/{}".format(funcname, funcargs))
 		if success:
 			self.info("result:{}".format(res))
 		else:
@@ -240,10 +266,12 @@ class Snafu:
 			for connectormod in connectormods:
 				handled = False
 				if "request" in dir(connectormod):
+					handled = True
 					f = connectormod.request()
+					if not f:
+						continue
 					res = self.execute(f)
 					connectormod.reply(res)
-					handled = True
 			if not handled:
 				time.sleep(5)
 
