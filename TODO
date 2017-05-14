@@ -30,3 +30,29 @@ notably update-function-*. Likewise, versioning is not yet supported.
  -> update-* is now implemented
 
 Asynchronous invocations are not supported at all at the moment.
+
+ -> there is now an async keyword in interactive mode
+
+The parser code for finding about which functions and parameters are
+available is currently monolithically located in snafu.py. Parsers
+should become a new subsystem class to ease the addition of new ones and
+maintenance of existing ones.
+
+There is currently a global default executor which makes it impossible
+to execute functions written in different languages within the same
+session. Rather, there should be a per-function default executor which
+is determined by the function file type.
+
+Advanced decomposition approaches (Podilizer, Lambada, function
+splitting) should be integrated as smart executors.
+
+Snafu-import is in need of some extensions, for instance the export of
+functions from Snafu to production systems, and the addition of
+OpenWhisk as target system (-s snafu, -t openwhisk).
+
+Apart from Lambda, more call conventions should be added. There is
+currently a limited amount of parser support within JavaScript to
+distinguish OpenWhisk from Google Cloud Functions. This should be
+consistently extended to all APIs implemented in snafu-control and made
+available to the -c flag. (For consistency with other subsystems, -c/-C
+should also be swapped.)
