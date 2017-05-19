@@ -421,6 +421,8 @@ class Snafu:
 		loader = importlib.machinery.SourceFileLoader(os.path.basename(source), source)
 		mod = types.ModuleType(loader.name)
 		sourceinfos.module = mod
+		if not os.path.dirname(source) in sys.path:
+			sys.path.append(os.path.dirname(source))
 		try:
 			loader.exec_module(mod)
 		except Exception as e:
