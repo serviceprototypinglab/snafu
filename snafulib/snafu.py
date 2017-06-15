@@ -169,6 +169,21 @@ class Snafu:
 
 		self.info("function:{}".format(funcname))
 
+		executormod = self.executormods[0]
+		for executormodcandidate in self.executormods:
+			if sourceinfos.source.endswith(".py"):
+				if ".inmemory" in executormodcandidate.__name__:
+					executormod = executormodcandidate
+			elif sourceinfos.source.endswith(".class"):
+				if ".java" in executormodcandidate.__name__:
+					executormod = executormodcandidate
+			elif sourceinfos.source.endswith(".so"):
+				if ".c" in executormodcandidate.__name__:
+					executormod = executormodcandidate
+			elif sourceinfos.source.endswith(".js"):
+				if ".javascript" in executormodcandidate.__name__:
+					executormod = executormodcandidate
+
 		envvars = {}
 		if config:
 			if "Environment" in config:
@@ -176,7 +191,7 @@ class Snafu:
 				keys = ",".join(envvars.keys())
 				self.info("config:environment:{}".format(keys))
 
-		if ".java" in self.executormods[0].__name__ or ".javascript" in self.executormods[0].__name__ or ".c" in self.executormods[0].__name__:
+		if ".java" in executormod.__name__ or ".javascript" in executormod.__name__ or ".c" in executormod.__name__:
 			#wantedargs = []
 			func, *wantedargs = func
 		else:
@@ -207,21 +222,21 @@ class Snafu:
 
 		if asynccall:
 			self.info("async...")
-			self.executeasync(func, funcargs, envvars, sourceinfos, sourcename, funcname)
+			self.executeasync(func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod)
 			return
 
-		return self.executeasyncthread(func, funcargs, envvars, sourceinfos, sourcename, funcname)
+		return self.executeasyncthread(func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod)
 
-	def executeasync(self, func, funcargs, envvars, sourceinfos, sourcename, funcname):
-		t = threading.Thread(target=self.executeasyncthread, args=(func, funcargs, envvars, sourceinfos, sourcename, funcname))
+	def executeasync(self, func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod):
+		t = threading.Thread(target=self.executeasyncthread, args=(func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod))
 		t.setDaemon(True)
 		t.start()
 
 		self.threads.append(t)
 
-	def executeasyncthread(self, func, funcargs, envvars, sourceinfos, sourcename, funcname):
+	def executeasyncthread(self, func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod):
 		stime = time.time()
-		dtime, success, res = self.executormods[0].execute(func, funcargs, envvars, sourceinfos)
+		dtime, success, res = executormod.execute(func, funcargs, envvars, sourceinfos)
 		otime = (time.time() - stime) * 1000
 
 		self.info("response:{}/{}".format(funcname, funcargs))
@@ -498,10 +513,13 @@ class SnafuRunner:
 			args.file.append("functions-local")
 			ignore = True
 
+		#executors = [args.executor]
+		executors = ["inmemory", "javascript", "java", "c"]
+
 		snafu = Snafu(args.quiet)
 		snafu.activate(args.file, args.convention, ignore=ignore)
 		snafu.setuploggers(args.logger)
-		snafu.setupexecutors([args.executor])
+		snafu.setupexecutors(executors)
 
 		if args.execute:
 			snafu.interactive = True
