@@ -500,7 +500,7 @@ class SnafuControl:
 		# FIXME: should now provide the choice between lambda, gfunctions and openwhisk depending on modular activation
 		self.snafu.activate(args.file, "lambda", ignore=ignore)
 		self.snafu.setuploggers(args.logger)
-		self.snafu.setupexecutors([args.executor])
+		self.snafu.setupexecutors(snafulib.snafu.selectexecutors(args.executor))
 		self.setupauthenticators(args.authenticator, args.quiet)
 
 		if args.quiet:

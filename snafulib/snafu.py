@@ -18,6 +18,31 @@ import subprocess
 import shutil
 import threading
 
+executormapping = {
+	"c": "so",
+	"docker": None,
+	"inmemory": "py",
+	"inmemstateless": "py",
+	"java": "class",
+	"javascript": "js",
+	"openshift": None,
+	"proxy": None,
+	"python2": "py",
+	"python2stateful": "py",
+	"python3": "py"
+}
+
+def selectexecutors(argsexecutor):
+	executors = {"py": "inmemory", "js": "javascript", "class": "java", "so": "c"}
+	for executor in argsexecutor:
+		if executormapping[executor]:
+			executors[executormapping[executor]] = executor
+		else:
+			for ex in executors:
+				executors[ex] = executor
+	executors = list(set(executors.values()))
+	return executors
+
 class SnafuFunctionSource:
 	def __init__(self, source, scan=True):
 		self.source = source
@@ -171,17 +196,18 @@ class Snafu:
 
 		executormod = self.executormods[0]
 		for executormodcandidate in self.executormods:
+			candidatename = executormodcandidate.__name__.split(".")[-1]
 			if sourceinfos.source.endswith(".py"):
-				if ".inmemory" in executormodcandidate.__name__:
+				if executormapping[candidatename] == "py":
 					executormod = executormodcandidate
 			elif sourceinfos.source.endswith(".class"):
-				if ".java" in executormodcandidate.__name__:
+				if executormapping[candidatename] == "class":
 					executormod = executormodcandidate
 			elif sourceinfos.source.endswith(".so"):
-				if ".c" in executormodcandidate.__name__:
+				if executormapping[candidatename] == "so":
 					executormod = executormodcandidate
 			elif sourceinfos.source.endswith(".js"):
-				if ".javascript" in executormodcandidate.__name__:
+				if executormapping[candidatename] == "js":
 					executormod = executormodcandidate
 
 		envvars = {}
@@ -497,7 +523,7 @@ class SnafuRunner:
 		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
 		parser.add_argument("-l", "--logger", help="function loggers; 'csv' by default", choices=["csv", "sqlite", "none"], default=["csv"], nargs="+")
-		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3", "javascript", "c"], default="inmemory")
+		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3", "javascript", "c"], default=["inmemory"], nargs="+")
 
 	def __init__(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service")
@@ -513,13 +539,10 @@ class SnafuRunner:
 			args.file.append("functions-local")
 			ignore = True
 
-		#executors = [args.executor]
-		executors = ["inmemory", "javascript", "java", "c"]
-
 		snafu = Snafu(args.quiet)
 		snafu.activate(args.file, args.convention, ignore=ignore)
 		snafu.setuploggers(args.logger)
-		snafu.setupexecutors(executors)
+		snafu.setupexecutors(selectexecutors(args.executor))
 
 		if args.execute:
 			snafu.interactive = True

@@ -43,6 +43,8 @@ to execute functions written in different languages within the same
 session. Rather, there should be a per-function default executor which
 is determined by the function file type.
 
+ -> per-type default executors are now available
+
 Advanced decomposition approaches (Podilizer, Lambada, function
 splitting) should be integrated as smart executors.
 

@@ -110,6 +110,9 @@ Loggers
 
 Executors
 ---------
+Note: one default executor is defined and can be overridden for each
+file type (.py, .js, .class, .so).
+
 * inmemory (fastest, in-memory, only for truly stateless function)
 * inmemstateless (higher isolation level through module reload)
 * python2 (external
