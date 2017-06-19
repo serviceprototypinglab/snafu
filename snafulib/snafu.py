@@ -117,6 +117,7 @@ class Snafu:
 		self.executormods = []
 		self.functionconnectors = {}
 		self.threads = []
+		self.externalexecutor = None
 
 	def setupexecutors(self, executors):
 		if not self.quiet:
@@ -159,6 +160,30 @@ class Snafu:
 
 		print(col_on + "[{:.3f}][{}][{}]".format(timestamp, callid, s) + col_off)
 
+	def executeexternal(self, funcname):
+		tmpfile = "/tmp/_lambdaoutput.snafu"
+		if self.externalexecutor == "lambda":
+			cmd = "aws lambda invoke --function-name {} {} >/dev/null".format(funcname, tmpfile)
+		self.info("// execute {} on {}: {}".format(funcname, self.externalexecutor, cmd))
+
+		stime = time.time()
+		#dtime, success, res = executormod.execute(func, funcargs, envvars, sourceinfos)
+		ret = os.system(cmd)
+		success = not ret
+		otime = (time.time() - stime) * 1000
+		res = None
+		if success:
+			f = open(tmpfile)
+			res = f.read()
+			if "errorMessage" in res:
+				success = False
+
+		funcargs = []
+		dtime = -1.0
+		sourcename = "external:{}".format(self.externalexecutor)
+
+		return self.reportexecutionresult(funcname, funcargs, success, res, dtime, otime, sourcename)
+
 	def execute(self, funcname, **kwargs):
 		asynccall = False
 		funcnameargs = funcname.split(" ")
@@ -168,6 +193,9 @@ class Snafu:
 					asynccall = True
 				else:
 					funcname = funcnamearg
+
+		if self.externalexecutor:
+			return self.executeexternal(funcname)
 
 		sourcename = None
 		if "." in funcname:
@@ -240,7 +268,10 @@ class Snafu:
 						data = sys.stdin.read().strip()
 					# FIXME: heuristics - based on name or on presence of curly braces?
 					if wantedarg == "event":
-						data = json.loads(data)
+						try:
+							data = json.loads(data)
+						except:
+							self.alert("Warning: JSON parsing has failed.")
 					funcargs.append(data)
 				else:
 					self.alert("Error: Data for argument {} needed but not supplied.".format(wantedarg))
@@ -265,12 +296,16 @@ class Snafu:
 		dtime, success, res = executormod.execute(func, funcargs, envvars, sourceinfos)
 		otime = (time.time() - stime) * 1000
 
+		return self.reportexecutionresult(funcname, funcargs, success, res, dtime, otime, sourcename)
+
+	def reportexecutionresult(self, funcname, funcargs, success, res, dtime, otime, sourcename):
 		self.info("response:{}/{}".format(funcname, funcargs))
 		if success:
 			self.info("result:{}".format(res))
 		else:
 			self.alert("exception! [{}]".format(res))
-		self.info("time:{:1.3f}ms".format(dtime))
+		if dtime > 0:
+			self.info("time:{:1.3f}ms".format(dtime))
 		self.info("overalltime:{:1.3f}ms".format(otime))
 
 		for loggermod in self.loggermods:
@@ -531,6 +566,7 @@ class SnafuRunner:
 		parser.add_argument("-c", "--convention", help="method call convention", choices=["any", "lambda"], default="any")
 		parser.add_argument("-C", "--connector", help="function connectors; 'cli' by default", choices=["cli", "web", "messaging", "filesystem", "cron"], default=["cli"], nargs="+")
 		parser.add_argument("-x", "--execute", help="execute a single function")
+		parser.add_argument("-X", "--execution-target", help="execute function on target service", choices=["lambda", "gfunctions", "openwhisk"], nargs="?")
 		args = parser.parse_args()
 
 		ignore = False
@@ -540,9 +576,21 @@ class SnafuRunner:
 			ignore = True
 
 		snafu = Snafu(args.quiet)
-		snafu.activate(args.file, args.convention, ignore=ignore)
+
+		if args.execution_target and args.executor != ["inmemory"]:
+			print("Error: -e/-X are mutually exclusive.", file=sys.stderr)
+			exit(-1)
+
+		if not args.execution_target:
+			snafu.activate(args.file, args.convention, ignore=ignore)
 		snafu.setuploggers(args.logger)
-		snafu.setupexecutors(selectexecutors(args.executor))
+
+		if args.execution_target:
+			snafu.externalexecutor = args.execution_target
+			if not snafu.quiet:
+				print("+ external executor: {}".format(snafu.externalexecutor))
+		else:
+			snafu.setupexecutors(selectexecutors(args.executor))
 
 		if args.execute:
 			snafu.interactive = True
