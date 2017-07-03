@@ -161,9 +161,15 @@ class Snafu:
 		print(col_on + "[{:.3f}][{}][{}]".format(timestamp, callid, s) + col_off)
 
 	def executeexternal(self, funcname):
+		if self.interactive:
+			if os.isatty(sys.stdin.fileno()):
+				data = input("Data for argument(s) may be needed...")
+			else:
+				data = sys.stdin.read().strip()
+
 		tmpfile = "/tmp/_lambdaoutput.snafu"
 		if self.externalexecutor == "lambda":
-			cmd = "aws lambda invoke --function-name {} {} >/dev/null".format(funcname, tmpfile)
+			cmd = "aws lambda invoke --function-name {} --payload '{}' {} >/dev/null".format(funcname, data, tmpfile)
 		self.info("// execute {} on {}: {}".format(funcname, self.externalexecutor, cmd))
 
 		stime = time.time()
