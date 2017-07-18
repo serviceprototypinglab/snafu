@@ -170,6 +170,14 @@ class Snafu:
 		tmpfile = "/tmp/_lambdaoutput.snafu"
 		if self.externalexecutor == "lambda":
 			cmd = "aws lambda invoke --function-name {} --payload '{}' {} >/dev/null".format(funcname, data, tmpfile)
+		elif self.externalexecutor == "openwhisk":
+			datafile = "/tmp/_wsk.snafu"
+			f = open(datafile, "w")
+			print(data, file=f)
+			f.close()
+			cmd = "wsk action invoke --blocking --result --param-file {} {} >{}".format(datafile, funcname, tmpfile)
+		else:
+			return None
 		self.info("// execute {} on {}: {}".format(funcname, self.externalexecutor, cmd))
 
 		stime = time.time()
