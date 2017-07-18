@@ -320,9 +320,7 @@ class SnafuControl:
 		#snafulib.snafu.SnafuImport.prepare()
 		snafulib.snafu.SnafuImport.importfunction(functionname, codezip, config, convert=True)
 
-		# codefile, configfile, oldcodefile
-		#SnafuControl.snafu.functions[functionname] = ([functionname] + funcparams, None, sourceinfos)
-		SnafuControl.snafu.activatefile(snafulib.snafu.SnafuImport.functiondir, "lambda")
+		SnafuControl.snafu.activate([snafulib.snafu.SnafuImport.functiondir], "lambda")
 
 		return json.dumps(config)
 
