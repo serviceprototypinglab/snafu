@@ -416,6 +416,20 @@ class Snafu:
 			os.system("javac JavaExec.java")
 			os.chdir(pwd)
 
+		funcname = None
+		configname = source.split(".")[0] + ".config"
+		if os.path.isfile(configname):
+			if not self.quiet:
+				print("  config:", configname)
+			config = json.load(open(configname))
+			if config:
+				funcname = config["FunctionName"]
+		else:
+			if convention == "lambda":
+				if not self.quiet:
+					print("  skip source {}".format(source))
+					return
+
 		if source.endswith(".java"):
 			binfile = source.replace(".java", ".class")
 			if not os.path.isfile(binfile):
@@ -431,6 +445,14 @@ class Snafu:
 
 		if not self.quiet:
 			print("» java module:", source)
+
+		if funcname:
+			# FIXME: shortcut leading to non-executable code for Lambda-imported Java
+			if not self.quiet:
+				print("  function: {}".format(funcname))
+			sourceinfos = SnafuFunctionSource(source, scan=False)
+			self.functions[funcname] = ([funcname], None, sourceinfos)
+			return
 
 		#javacmd = "java -cp executors/java/:{} JavaExec {} fib 3".format(os.path.dirname(source), os.path.basename(source).split(".")[0])
 		#javacmd = "java JavaExec Hello myHandler 5 null"

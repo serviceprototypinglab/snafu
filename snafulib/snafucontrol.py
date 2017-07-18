@@ -12,6 +12,7 @@ import logging
 import importlib
 import threading
 import time
+import shutil
 
 """
 AWS CLI support
@@ -24,7 +25,7 @@ create-event-source-mapping
 * create-function
 delete-alias
 delete-event-source-mapping
-delete-function
+* delete-function
 get-account-settings
 get-alias
 get-event-source-mapping
@@ -319,6 +320,10 @@ class SnafuControl:
 		#snafulib.snafu.SnafuImport.prepare()
 		snafulib.snafu.SnafuImport.importfunction(functionname, codezip, config, convert=True)
 
+		# codefile, configfile, oldcodefile
+		#SnafuControl.snafu.functions[functionname] = ([functionname] + funcparams, None, sourceinfos)
+		SnafuControl.snafu.activatefile(snafulib.snafu.SnafuImport.functiondir, "lambda")
+
 		return json.dumps(config)
 
 	@app.route("/2015-03-31/functions/")
@@ -335,20 +340,35 @@ class SnafuControl:
 		functions = {"Functions" : f}
 		return json.dumps(functions)
 
-	@app.route("/2015-03-31/functions/<function>")
+	@app.route("/2015-03-31/functions/<function>", methods=["GET", "DELETE"])
 	def getfunction(function):
 		auth = SnafuControl.authorise()
 		if not auth:
 			return ControlUtil.notauthorised()
 
 		if function in SnafuControl.snafu.functions:
-			funccode = {}
-			funccode["RepositoryType"] = "snafu"
-			funccode["Location"] = "http://localhost:{}/function-download/{}.zip".format(SnafuControl.port, function)
-			func = {}
-			func["Code"] = funccode
-			func["Configuration"] = ControlUtil.functionconfiguration(function)
-			return json.dumps(func)
+			if flask.request.method == "GET":
+				funccode = {}
+				funccode["RepositoryType"] = "snafu"
+				funccode["Location"] = "http://localhost:{}/function-download/{}.zip".format(SnafuControl.port, function)
+				func = {}
+				func["Code"] = funccode
+				func["Configuration"] = ControlUtil.functionconfiguration(function)
+				return json.dumps(func)
+			elif flask.request.method == "DELETE":
+				if auth[1]:
+					functiondir = "functions-tenants/{}/{}".format(auth[1], function)
+				else:
+					functiondir = "functions-local/{}".format(function)
+
+				if os.path.isdir(functiondir):
+					shutil.rmtree(functiondir)
+					if os.path.isfile(functiondir + ".zip"):
+						os.remove(functiondir + ".zip")
+					return json.dumps({})
+				else:
+					err = json.dumps({"errorMessage": "ResourceNotFoundException"})
+					return err, 501
 		else:
 			err = json.dumps({"errorMessage": "ResourceNotFoundException"})
 			return err, 501
