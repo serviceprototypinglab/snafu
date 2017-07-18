@@ -281,7 +281,7 @@ class Snafu:
 					else:
 						data = sys.stdin.read().strip()
 					# FIXME: heuristics - based on name or on presence of curly braces?
-					if wantedarg == "event":
+					if wantedarg == "event" or data.startswith("{"):
 						try:
 							data = json.loads(data)
 						except:
@@ -527,9 +527,9 @@ class Snafu:
 					handlerbase = sourcename
 				else:
 					handlerbase, handlername = handler.split(".")
-				if convention != "lambda" or (node.name == handlername and sourcename == handlerbase):
+				if convention not in ("lambda", "openwhisk") or (node.name == handlername and sourcename == handlerbase):
 					funcname = sourcename + "." + node.name
-					if config and "FunctionName" in config and convention == "lambda":
+					if config and "FunctionName" in config and convention in ("lambda", "openwhisk"):
 						funcname = config["FunctionName"]
 					try:
 						func = getattr(mod, node.name)
@@ -577,7 +577,7 @@ class SnafuRunner:
 	def __init__(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service")
 		SnafuRunner.add_common_arguments(parser)
-		parser.add_argument("-c", "--convention", help="method call convention", choices=["any", "lambda"], default="any")
+		parser.add_argument("-c", "--convention", help="method call convention", choices=["any", "lambda", "openwhisk"], default="any")
 		parser.add_argument("-C", "--connector", help="function connectors; 'cli' by default", choices=["cli", "web", "messaging", "filesystem", "cron"], default=["cli"], nargs="+")
 		parser.add_argument("-x", "--execute", help="execute a single function")
 		parser.add_argument("-X", "--execution-target", help="execute function on target service", choices=["lambda", "gfunctions", "openwhisk"], nargs="?")

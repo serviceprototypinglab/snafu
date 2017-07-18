@@ -20,6 +20,7 @@ class SnafuImportUtility:
 		parser.add_argument("-s", "--source", help="import source", choices=["lambda", "gfunctions", "openwhisk"], default=None)
 		parser.add_argument("-t", "--target", help="import target", choices=["snafu", "funktion", "fission", "kubeless"], default="snafu")
 		parser.add_argument("-c", "--convert", help="convert functions from Python 2 to Python 3 for native execution")
+		parser.add_argument("function", nargs="*", help="function(s) to import - if not specified, import all")
 		args = parser.parse_args()
 
 		snafulib.snafu.SnafuImport.prepare()
@@ -27,11 +28,11 @@ class SnafuImportUtility:
 		if args.source is None:
 			print("Must specify a source with --source.", file=sys.stderr)
 		elif args.source == "lambda":
-			self.import_lambda(args.target, args.convert)
+			self.import_lambda(args.target, args.convert, args.function)
 		elif args.source == "gfunctions":
-			self.import_gfunctions(args.target)
+			self.import_gfunctions(args.target, args.function)
 		elif args.source == "openwhisk":
-			self.import_openwhisk(args.target)
+			self.import_openwhisk(args.target, args.function)
 
 	def export_snafu(self, filename, code, name, env):
 		#codefile, configfile, oldcodefile = snafulib.snafu.SnafuImport.importfunction(actioninfo["name"], None, x, False)
@@ -108,7 +109,7 @@ class SnafuImportUtility:
 		subprocess.run("kubeless function deploy '{}' --runtime {} --handler '{}' --from-file '{}' --trigger-http".format(mangledname, env, handler, codefile), shell=True)
 		print("+ code: {} (in kubeless)".format(os.path.basename(filename)))
 
-	def import_openwhisk(self, target):
+	def import_openwhisk(self, target, functionfilter):
 		proc = subprocess.run("wsk list", stdout=subprocess.PIPE, shell=True)
 		out = proc.stdout.decode("utf-8")
 		inactions = False
@@ -121,6 +122,12 @@ class SnafuImportUtility:
 			elif inactions:
 				function = line[0]
 				print("import", function)
+
+				functionshort = function.split("/")[-1]
+				if functionfilter and functionshort not in functionfilter:
+					print("- discard {} through filter".format(function))
+					continue
+
 				proc = subprocess.run("wsk action get '{}'".format(function), stdout=subprocess.PIPE, shell=True)
 				out = proc.stdout.decode("utf-8")
 				out = out[out.find("\n"):]
@@ -132,7 +139,7 @@ class SnafuImportUtility:
 				if code["kind"] == "nodejs" or code["kind"] == "nodejs:6":
 					filename = actioninfo["name"] + ".js"
 					env = "nodejs"
-				elif code["kind"] == "python" or code["kind"] == "python:2":
+				elif code["kind"] == "python" or code["kind"] == "python:2" or code["kind"] == "python:3":
 					filename = actioninfo["name"] + ".py"
 					env = "python"
 				else:
@@ -141,6 +148,12 @@ class SnafuImportUtility:
 				if filename:
 					if target == "snafu":
 						self.export_snafu(filename, code["code"], actioninfo["name"], env)
+						confjson = {"FunctionName": functionshort, "Handler": functionshort + ".main"}
+						confstr = json.dumps(confjson)
+						configfile = os.path.join(snafulib.snafu.SnafuImport.functiondir, actioninfo["name"] + ".config")
+						f = open(configfile, "w")
+						print(confstr, file=f)
+						f.close()
 					elif target == "funktion":
 						self.export_funktion(filename, code["code"], actioninfo["name"], env)
 					elif target == "fission":
@@ -148,7 +161,7 @@ class SnafuImportUtility:
 					elif target == "kubeless":
 						self.export_kubeless(filename, code["code"], actioninfo["name"], env)
 
-	def import_gfunctions(self, target):
+	def import_gfunctions(self, target, functionfilter):
 		proc = subprocess.run("gcloud beta functions list", stdout=subprocess.PIPE, shell=True)
 		out = proc.stdout.decode("utf-8")
 		functiondir = snafulib.snafu.SnafuImport.functiondir
@@ -157,6 +170,11 @@ class SnafuImportUtility:
 			if len(lineparts) > 1 and lineparts[0] != "NAME":
 				funcname = lineparts[0]
 				print("import", funcname)
+
+				if functionfilter and funcname not in functionfilter:
+					print("- discard {} through filter".format(funcname))
+					continue
+
 				snafulib.snafu.SnafuImport.functiondir = os.path.join(functiondir, funcname)
 				proc = subprocess.run("gcloud beta functions describe {}".format(funcname), stdout=subprocess.PIPE, shell=True)
 				out = proc.stdout.decode("utf-8")
@@ -181,7 +199,7 @@ class SnafuImportUtility:
 						elif target == "kubeless":
 							self.export_kubeless(codezip, None, funcname, env)
 
-	def import_lambda(self, target, convert):
+	def import_lambda(self, target, convert, functionfilter):
 		proc = subprocess.run("aws lambda list-functions", stdout=subprocess.PIPE, shell=True)
 		out = proc.stdout.decode("utf-8")
 		functions = json.loads(out)
@@ -189,6 +207,11 @@ class SnafuImportUtility:
 		for func in functions["Functions"]:
 			funcname = func["FunctionName"]
 			print("import", funcname)
+
+			if functionfilter and funcname not in functionfilter:
+				print("- discard {} through filter".format(funcname))
+				continue
+
 			snafulib.snafu.SnafuImport.functiondir = os.path.join(functiondir, funcname)
 			proc = subprocess.run("aws lambda get-function --function-name {}".format(funcname), stdout=subprocess.PIPE, shell=True)
 			out = proc.stdout.decode("utf-8")
