@@ -428,7 +428,7 @@ class Snafu:
 			if convention == "lambda":
 				if not self.quiet:
 					print("  skip source {}".format(source))
-					return
+				return
 
 		if source.endswith(".java"):
 			binfile = source.replace(".java", ".class")
