@@ -76,6 +76,9 @@ class SnafuImport:
 			codefiles = glob.glob(os.path.join(funcdir, "*.class"))
 		if len(codefiles) == 0:
 			codefiles = glob.glob(os.path.join(funcdir, "*.js"))
+		if len(codefiles) == 0:
+			# FIXME: heuristics leading to non-usable Java function deployments
+			codefiles = glob.glob(os.path.join(funcdir, "META-INF"))
 		codefile = codefiles[0]
 		oldcodefile = None
 		if codezip:

@@ -533,7 +533,17 @@ class SnafuControl:
 			print("+ deployer")
 			ControlUtil.deployer(SnafuControl.snafu)
 
-		self.app.run(host="0.0.0.0", port=args.port, threaded=True)
+		context = None
+		if args.port == 443 or args.port == 10443:
+			print("+ tls activation")
+			#import flask_sslify
+			#sslify = flask_sslify.SSLify(self.app)
+			import ssl
+			context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+			context.load_cert_chain('yourserver.crt', 'yourserver.key')
+			#context="adhoc"
+
+		self.app.run(host="0.0.0.0", port=args.port, threaded=True, ssl_context=context)
 
 class SnafuControlRunner:
 	def __init__(self):

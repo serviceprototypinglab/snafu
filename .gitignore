@@ -8,3 +8,6 @@ _*
 build/
 dist/
 snafu.egg-info/
+
+yourserver.crt
+yourserver.key
