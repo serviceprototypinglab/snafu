@@ -3,11 +3,13 @@
 import os
 import configparser
 
-def log(source, function, duration, success):
+def log(source, function, duration, success, configpath):
 	logurl = "snafu.csv"
-	if os.path.isfile("snafu.ini"):
+	if not configpath:
+		configpath = "snafu.ini"
+	if os.path.isfile(configpath):
 		config = configparser.ConfigParser()
-		config.read("snafu.ini")
+		config.read(configpath)
 		if "snafu" in config and "logger.csv" in config["snafu"]:
 			logurl = config["snafu"]["logger.csv"]
 

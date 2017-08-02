@@ -121,6 +121,7 @@ class Snafu:
 		self.functionconnectors = {}
 		self.threads = []
 		self.externalexecutor = None
+		self.configpath = None
 
 	def setupexecutors(self, executors):
 		if not self.quiet:
@@ -199,7 +200,7 @@ class Snafu:
 		dtime = -1.0
 		sourcename = "external:{}".format(self.externalexecutor)
 
-		return self.reportexecutionresult(funcname, funcargs, success, res, dtime, otime, sourcename)
+		return self.reportexecutionresult(funcname, funcargs, success, res, dtime, otime, sourcename, configpath)
 
 	def execute(self, funcname, **kwargs):
 		asynccall = False
@@ -294,28 +295,30 @@ class Snafu:
 					self.alert("Error: Data for argument {} needed but not supplied.".format(wantedarg))
 					return
 
+		configpath = self.configpath
+
 		if asynccall:
 			self.info("async...")
-			self.executeasync(func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod)
+			self.executeasync(func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod, configpath)
 			return
 
-		return self.executeasyncthread(func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod)
+		return self.executeasyncthread(func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod, configpath)
 
-	def executeasync(self, func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod):
-		t = threading.Thread(target=self.executeasyncthread, args=(func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod))
+	def executeasync(self, func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod, configpath):
+		t = threading.Thread(target=self.executeasyncthread, args=(func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod, configpath))
 		t.setDaemon(True)
 		t.start()
 
 		self.threads.append(t)
 
-	def executeasyncthread(self, func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod):
+	def executeasyncthread(self, func, funcargs, envvars, sourceinfos, sourcename, funcname, executormod, configpath):
 		stime = time.time()
 		dtime, success, res = executormod.execute(func, funcargs, envvars, sourceinfos)
 		otime = (time.time() - stime) * 1000
 
-		return self.reportexecutionresult(funcname, funcargs, success, res, dtime, otime, sourcename)
+		return self.reportexecutionresult(funcname, funcargs, success, res, dtime, otime, sourcename, configpath)
 
-	def reportexecutionresult(self, funcname, funcargs, success, res, dtime, otime, sourcename):
+	def reportexecutionresult(self, funcname, funcargs, success, res, dtime, otime, sourcename, configpath):
 		self.info("response:{}/{}".format(funcname, funcargs))
 		if success:
 			self.info("result:{}".format(res))
@@ -326,11 +329,11 @@ class Snafu:
 		self.info("overalltime:{:1.3f}ms".format(otime))
 
 		for loggermod in self.loggermods:
-			loggermod.log(sourcename or "", funcname, dtime, success)
+			loggermod.log(sourcename or "", funcname, dtime, success, configpath)
 
 		return res
 
-	def connect(self, connectors):
+	def connect(self, connectors, configpath):
 		if not self.quiet:
 			for connector in connectors:
 				print("+ connector:", connector)
@@ -344,7 +347,7 @@ class Snafu:
 
 		for connectormod in connectormods:
 			if "init" in dir(connectormod):
-				connectormod.init(self.execute)
+				connectormod.init(self.execute, None, configpath)
 
 		for function in self.functionconnectors:
 			if not self.quiet:
@@ -606,6 +609,7 @@ class SnafuRunner:
 		parser.add_argument("-C", "--connector", help="function connectors; 'cli' by default", choices=["cli", "web", "messaging", "filesystem", "cron"], default=["cli"], nargs="+")
 		parser.add_argument("-x", "--execute", help="execute a single function")
 		parser.add_argument("-X", "--execution-target", help="execute function on target service", choices=["lambda", "gfunctions", "openwhisk"], nargs="?")
+		parser.add_argument("-s", "--settings", help="location of the settings file; 'snafu.ini' by default")
 		args = parser.parse_args()
 
 		ignore = False
@@ -631,12 +635,14 @@ class SnafuRunner:
 		else:
 			snafu.setupexecutors(selectexecutors(args.executor))
 
+		snafu.configpath = args.settings
+
 		if args.execute:
 			snafu.interactive = True
 			snafu.execute(args.execute)
 		else:
 			try:
-				snafu.connect(args.connector)
+				snafu.connect(args.connector, args.settings)
 			except Exception as e:
 				print()
 				if str(e) != "":
