@@ -11,3 +11,5 @@ snafu.egg-info/
 
 yourserver.crt
 yourserver.key
+
+pyvenv/
