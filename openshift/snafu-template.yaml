@@ -56,8 +56,12 @@ objects:
           deploymentconfig: snafu
       spec:
         containers:
-        - command:
-          - /opt/snafu-control
+        - args:
+          - --executor=inmemory
+          - --logger=csv
+          - --connector=web
+          command:
+          - /opt/snafu
           - -s
           - /etc/snafu/snafu.ini
           image: snafu
@@ -117,10 +121,23 @@ objects:
     sessionAffinity: None
     type: ClusterIP
 - apiVersion: v1
+  kind: Route
+  metadata:
+    name: snafu
+  spec:
+    port:
+      targetPort: 8080-tcp
+    to:
+      kind: Service
+      name: snafu
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: v1
   data:
     snafu.ini: |
       [snafu]
-      logger.csv = /opt/functions-local/.snafu2.csv
+      logger.csv = /tmp/snafu.csv
+      connector.web = 8080
   kind: ConfigMap
   metadata:
     name: config
