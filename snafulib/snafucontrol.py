@@ -441,7 +441,7 @@ class SnafuControl:
 		if not auth:
 			return ControlUtil.notauthorised()
 
-		if SnafuControl.snafu.executormods[0].__name__ == "executors.docker":
+		if SnafuControl.snafu.executormods[0].__name__ == "snafulib.executors.docker":
 			response = SnafuControl.snafu.executormods[0].executecontrol(flask.request, auth[1])
 		else:
 			dataargs = {}
