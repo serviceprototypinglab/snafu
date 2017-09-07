@@ -188,6 +188,7 @@ class SnafuControl:
 	port = None
 	snafu = None
 	authenticatormods = []
+	passive = False
 
 	def __init__(self):
 		pass
@@ -251,6 +252,8 @@ class SnafuControl:
 	@app.route("/api/v1/namespaces/<namespace>/actions/<function>", methods=["POST"])
 	# ?blocking=true&result=true
 	def invokeopenwhisk(namespace, function):
+		if SnafuControl.passive:
+			return ControlUtil.notauthorised()
 		data = flask.request.data.decode("utf-8")
 		dataargs = json.loads(data)
 		#print("F", function, dataargs)
@@ -273,6 +276,8 @@ class SnafuControl:
 
 	@app.route("/v1beta2/projects/<project>/locations/<location>/functions/<function>", methods=["POST"])
 	def invokegoogle(project, location, function):
+		if SnafuControl.passive:
+			return ControlUtil.notauthorised()
 		function = function.split(":")[0]
 		response = SnafuControl.snafu.execute(function)
 		return json.dumps(response)
@@ -405,6 +410,8 @@ class SnafuControl:
 		auth = SnafuControl.authorise()
 		if not auth:
 			return ControlUtil.notauthorised()
+		if SnafuControl.passive:
+			return ControlUtil.notauthorised()
 
 		if function in SnafuControl.snafu.functions:
 			if flask.request.method == "GET":
@@ -426,6 +433,8 @@ class SnafuControl:
 		auth = SnafuControl.authorise()
 		if not auth:
 			return ControlUtil.notauthorised()
+		if SnafuControl.passive:
+			return ControlUtil.notauthorised()
 
 		data = flask.request.data.decode("utf-8")
 		"""
@@ -439,6 +448,8 @@ class SnafuControl:
 	def invoke(function):
 		auth = SnafuControl.authorise()
 		if not auth:
+			return ControlUtil.notauthorised()
+		if SnafuControl.passive:
 			return ControlUtil.notauthorised()
 
 		if SnafuControl.snafu.executormods[0].__name__ == "snafulib.executors.docker":
@@ -497,6 +508,7 @@ class SnafuControl:
 		parser.add_argument("-p", "--port", help="HTTP port number", type=int, default=10000)
 		parser.add_argument("-r", "--reaper", help="closed connection reaper", action="store_true")
 		parser.add_argument("-d", "--deployer", help="automated hot deployment", action="store_true")
+		parser.add_argument("-P", "--passive", help="passive mode without function execution", action="store_true")
 
 		for action in parser._actions:
 			if action.dest == "executor":
@@ -515,6 +527,7 @@ class SnafuControl:
 
 		SnafuControl.snafu = snafulib.snafu.Snafu(args.quiet)
 		SnafuControl.port = args.port
+		SnafuControl.passive = args.passive
 		# FIXME: should now provide the choice between lambda, gfunctions and openwhisk depending on modular activation
 
 		self.snafu.configpath = args.settings

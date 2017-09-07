@@ -73,6 +73,8 @@ A marketplace is needed to host functions. For its implementation, a
 passive snafu-control mode which only allows for function management but
 not for execution would be suitable.
 
+ -> simple passive mode is now implemented
+
 # Misc:
 # better error messages for docker (+ maybe docker also for pure snafu)
 # check for oracle functions
