@@ -58,3 +58,21 @@ distinguish OpenWhisk from Google Cloud Functions. This should be
 consistently extended to all APIs implemented in snafu-control and made
 available to the -c flag. (For consistency with other subsystems, -c/-C
 should also be swapped.)
+
+To better debug function execution, a tracing executor should be added
+for at least the Python language. This executor should output statistics
+about local and remote function calls and generally useful information
+from the profile module.
+
+A snafu-deploy tool could be developed to quickly deploy functions to
+any cloud provider without going through the hassle of learning the
+provider-dependent deployment tools. Execution is then possible through
+snafu -X.
+
+A marketplace is needed to host functions. For its implementation, a
+passive snafu-control mode which only allows for function management but
+not for execution would be suitable.
+
+# Misc:
+# better error messages for docker (+ maybe docker also for pure snafu)
+# check for oracle functions
