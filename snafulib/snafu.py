@@ -601,6 +601,7 @@ class SnafuRunner:
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
 		parser.add_argument("-l", "--logger", help="function loggers; 'csv' by default", choices=["csv", "sqlite", "none"], default=["csv"], nargs="+")
 		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3", "javascript", "c"], default=["inmemory"], nargs="+")
+		parser.add_argument("-s", "--settings", help="location of the settings file; 'snafu.ini' by default")
 
 	def __init__(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service")
@@ -609,7 +610,6 @@ class SnafuRunner:
 		parser.add_argument("-C", "--connector", help="function connectors; 'cli' by default", choices=["cli", "web", "messaging", "filesystem", "cron"], default=["cli"], nargs="+")
 		parser.add_argument("-x", "--execute", help="execute a single function")
 		parser.add_argument("-X", "--execution-target", help="execute function on target service", choices=["lambda", "gfunctions", "openwhisk"], nargs="?")
-		parser.add_argument("-s", "--settings", help="location of the settings file; 'snafu.ini' by default")
 		args = parser.parse_args()
 
 		ignore = False
