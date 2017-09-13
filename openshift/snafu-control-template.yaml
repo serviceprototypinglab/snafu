@@ -56,7 +56,9 @@ objects:
           deploymentconfig: snafu-control
       spec:
         containers:
-        - command:
+        - args:
+          - --authenticator=aws
+          command:
           - /opt/snafu-control
           - -s
           - /etc/snafu/snafu.ini
@@ -72,6 +74,10 @@ objects:
           volumeMounts:
           - mountPath: /etc/snafu
             name: config
+          - mountPath: /root
+            name: snafu-accounts
+          - mountPath: /opt/functions-tenants
+            name: snafu-functions
         dnsPolicy: ClusterFirst
         restartPolicy: Always
         schedulerName: default-scheduler
@@ -82,6 +88,12 @@ objects:
             defaultMode: 420
             name: config-snafu-control
           name: config
+        - configMap:
+            defaultMode: 420
+            name: snafu-accounts
+          name: snafu-accounts
+        - emptyDir: {}
+          name: snafu-functions
     test: false
     triggers:
     - type: ConfigChange
@@ -128,7 +140,15 @@ objects:
       [snafu]
       logger.csv = /tmp/snafu.csv
       connector.web = 8080
-      authenticator = aws
   kind: ConfigMap
   metadata:
     name: config-snafu-control
+- apiVersion: v1
+  data:
+    .snafu-accounts: |
+      [account0]
+      access_key_id = mykey
+      secret_access_key = mayccesskey
+  kind: ConfigMap
+  metadata:
+    name: snafu-accounts
