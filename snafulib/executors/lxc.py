@@ -3,6 +3,15 @@
 import os
 import time
 import lxc
+#import io
+#import sys
+import tempfile
+
+#def wrapper(func, funcargs):
+#	print(func(*funcargs))
+
+def wrapper(funcwithargs):
+	print(funcwithargs[1](*funcwithargs[2:]), file=funcwithargs[0])
 
 def execute(func, funcargs, envvars, sourceinfos):
 	for envvar in envvars:
@@ -14,11 +23,14 @@ def execute(func, funcargs, envvars, sourceinfos):
 	if not success:
 		raise Exception("LXC permissions insufficient")
 
+	#channel = io.StringIO()
+	channel = tempfile.TemporaryFile(mode="w+", buffering=1)
+
 	stime = time.time()
 	try:
-		#res = func(*funcargs)
-		c.attach(func, funcargs[0])
-		res = 999999
+		c.attach_wait(wrapper, (channel, func, *funcargs))
+		channel.seek(0)
+		res = channel.read().strip()
 		success = True
 	except Exception as e:
 		res = e
