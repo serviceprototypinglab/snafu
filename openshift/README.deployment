@@ -1,0 +1,5 @@
+Snafu is prepared to run in multi-tenant environments with integration into OpenShift and Kubernetes.
+
+For the time being, refer to the instructions in this blog post (in German):
+
+https://blog.vshn.ch/2017/09/serverless-computing-functions-as-a-service-mit-appuio-und-snafu

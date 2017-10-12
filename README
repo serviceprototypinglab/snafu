@@ -113,11 +113,15 @@ Executors
 Note: one default executor is defined and can be overridden for each
 file type (.py, .js, .class, .so).
 
+For Python:
 * inmemory (fastest, in-memory, only for truly stateless function)
 * inmemstateless (higher isolation level through module reload)
 * python2 (external
 * python2stateful (re-used instance with lower isolation level)
 * python3 (external)
+* lxc (wrapping function instances into LXC contexts for isolation)
+
+For other programming languages:
 * java (external, under development)
 * javascript (external, under development)
 * c (external, under development)
@@ -141,11 +145,15 @@ Import/Export
 Packaged Snafu
 --------------
 A containerised version is made available for running Snafu in a Docker
-environment. The image is complete rather than minimal and includes
-among others the command-line tools of several commercial FaaS
-providers.
+environment. An alternate version of the image is complete rather than
+minimal and includes among others the command-line tools of several
+commercial FaaS providers.
 
 % docker run -ti jszhaw/snafu
+% docker run -ti jszhaw/snafucomplete
+
+Integration into OpenShift and Kubernetes is available for experiments
+and documented in the 'openshift' directory.
 
 Furthermore, a Python package is made available on PyPI.
 
