@@ -23,6 +23,9 @@ RUN echo "deb http://deb.debian.org/debian jessie-backports main" >> /etc/apt/so
     wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.2.0_amd64.deb && \
     dpkg -i dumb-init_1.2.0_amd64.deb
 
+# Workaround due to apt-get install python3-pyinotify leading to stalled systemd triggers
+RUN pip install pyinotify
+
 # Add and configure Snafu
 ADD . /opt
 WORKDIR /opt
