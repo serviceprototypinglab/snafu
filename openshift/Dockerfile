@@ -1,4 +1,4 @@
-# build >> (sudo) docker build -t snafu .
+# build >> (sudo) docker build -t snafu . # -> now use: build-docker-images.sh
 # debug >> (sudo) docker run -ti snafu bash
 # run   >> (sudo) docker run -p 10000:10000 -ti snafu
 
