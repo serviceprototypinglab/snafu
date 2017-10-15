@@ -286,7 +286,16 @@ class SnafuControl:
 	def functiondownload(function):
 		func, config, sourceinfos = SnafuControl.snafu.functions[function]
 		try:
-			content = open(sourceinfos.source).read()
+			path = sourceinfos.source
+			mode = "r"
+			dirname = os.path.dirname(sourceinfos.source)
+			pdirname = os.path.dirname(os.path.abspath(os.path.join(sourceinfos.source, "..")))
+			zippath = os.path.join(pdirname, os.path.basename(dirname) + ".zip")
+			if os.path.isfile(zippath):
+				path = zippath
+				mode = "rb"
+				
+			content = open(path, mode).read()
 		except:
 			err = json.dumps({"errorMessage": "NoZipFilePresent"})
 			return err, 501

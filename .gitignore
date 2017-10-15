@@ -13,3 +13,5 @@ yourserver.crt
 yourserver.key
 
 pyvenv/
+
+*.zip
