@@ -14,28 +14,36 @@ class Context:
 	#def __new__(self):
 	#	self.SnafuContext = self
 	#	return self
-
+frame_time_dict={'frame':time.time()}
 def trace(frame, event, arg):
-	if not 'tracetime' in globals():
-		global tracetime
-		tracetime = None
-	if event=='call':
-		out_file = open('testfile.txt','a')
-		if tracetime==None:
-			tracetime=time.time()
-		else:
-			helptime = time.time()
-			timedif=int(round((helptime-tracetime)*1000000))
-			out_file.write(' time taken: '+str(timedif)+' µs\n')
-			tracetime = helptime
-		line_no = frame.f_lineno
-		funcname = frame.f_code.co_name
-		filename = frame.f_code.co_filename
+	#Potential optimization: put caller_string and function_string into a dictionary
+
+	#getting what code was called
+	line_no = frame.f_lineno
+	funcname = frame.f_code.co_name
+	filename = frame.f_code.co_filename
+	function_string = str(filename)+'.'+str(funcname)
+
+	#getting who called the code
+	has_caller = frame.f_back is not None
+	caller_string = ''
+	if has_caller:
 		caller = frame.f_back
 		caller_funcname = caller.f_code.co_name
 		caller_filename = caller.f_code.co_filename
-		out_file.write(event+' to '+str(filename)+'.'+str(funcname)+' by '+caller_filename+'.'+caller_funcname)
-	#print(event+' to '+str(filename)+'.'+str(funcname))
+		caller_string = caller_filename+'.'+caller_funcname
+
+	if event=='call':
+		#inserting start time for the frame
+		frame_time_dict[frame]=time.time()
+		print('call from \t'+caller_string+' to '+function_string,file=sys.stderr)
+	if event=='return':
+		#taking out the time for frame
+		time_elapsed_ms = round((time.time()-frame_time_dict[frame])*1000,6)
+		print('return from \t'+function_string+' to '+caller_string+' - time elapsed: '+str(time_elapsed_ms)+"ms",file=sys.stderr)
+
+	#need to return tracefunc so that it still works after functioncalls
+	return trace
 
 def execute(filename, func, funcargs, envvars):
 	funcargs = json.loads(funcargs)

@@ -18,6 +18,9 @@ import subprocess
 import shutil
 import threading
 
+#******************************************************************************
+#*	You also have to add your executor here and down below in the SnafuRunner *
+#******************************************************************************
 executormapping = {
 	"c": "so",
 	"docker": None,
@@ -30,7 +33,8 @@ executormapping = {
 	"proxy": None,
 	"python2": "py",
 	"python2stateful": "py",
-	"python3": "py"
+	"python3": "py",
+	"python3trace": "py"
 }
 
 def selectexecutors(argsexecutor):
@@ -601,7 +605,11 @@ class SnafuRunner:
 		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
 		parser.add_argument("-l", "--logger", help="function loggers; 'csv' by default", choices=["csv", "sqlite", "none"], default=["csv"], nargs="+")
-		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3", "javascript", "c", "lxc"], default=["inmemory"], nargs="+")
+
+			#********************************
+			#*	Also add your executor here *
+			#********************************
+		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3", "python3trace", "javascript", "c", "lxc"], default=["inmemory"], nargs="+")
 		parser.add_argument("-s", "--settings", help="location of the settings file; 'snafu.ini' by default")
 
 	def __init__(self):

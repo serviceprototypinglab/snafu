@@ -27,7 +27,7 @@ def execute(func, funcargs, envvars, sourceinfos):
 
 #	sys.settrace(trace)
 	#put in commandline tools
-	p = subprocess.run("python3 snafulib/executors/python3-trace-exec.py {} {} '{}' '{}'".format(sourceinfos.source, func.__name__, funcargs, envvars), stdout=subprocess.PIPE, shell=True)
+	p = subprocess.run("python3 snafulib/executors/python3-trace-exec.py {} {} '{}' '{}' ".format(sourceinfos.source, func.__name__, funcargs, envvars), stdout=subprocess.PIPE, shell=True)
 #	sys.settrace(None)
 
 	try:
