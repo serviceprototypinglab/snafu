@@ -294,7 +294,7 @@ class SnafuControl:
 			if os.path.isfile(zippath):
 				path = zippath
 				mode = "rb"
-				
+
 			content = open(path, mode).read()
 		except:
 			err = json.dumps({"errorMessage": "NoZipFilePresent"})

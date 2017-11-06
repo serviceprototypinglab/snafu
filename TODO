@@ -59,6 +59,12 @@ consistently extended to all APIs implemented in snafu-control and made
 available to the -c flag. (For consistency with other subsystems, -c/-C
 should also be swapped.)
 
+The JavaScript parser based on PyEsprima does not handle complex
+JavaScript code. The Esprima online demo however parses it correctly.
+The alternatives (Esprima-Python, PyJSParser) all bail. Therefore, an
+alternative implementation is to install and run esprima as separate
+process and parse the JSON output to get the exported function names.
+
 To better debug function execution, a tracing executor should be added
 for at least the Python language. This executor should output statistics
 about local and remote function calls and generally useful information

@@ -387,9 +387,9 @@ class Snafu:
 
 		try:
 			ast = pyesprima.pyesprima3.parse(open(source).read())
-		except:
+		except Exception as e:
 			if not self.quiet:
-				print("Warning: {} is not parseable, skipping.".format(source), file=sys.stderr)
+				print("Warning: {} is not parseable, skipping. [{}]".format(source, e), file=sys.stderr)
 			return
 
 		for body in ast.body:
