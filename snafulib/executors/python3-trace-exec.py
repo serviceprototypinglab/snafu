@@ -6,6 +6,7 @@ import time
 import json
 import base64
 import pickle
+import psutil
 
 class Context:
 	def __init__(self):
@@ -15,6 +16,12 @@ class Context:
 	#	self.SnafuContext = self
 	#	return self
 frame_time_dict={'frame':time.time()}
+open_connections_old = []
+open_connections = []
+open_files_old = []
+open_files = []
+saved_variables={'last_line':0, 'last_time':-1}
+proc=psutil.Process(os.getpid())
 def trace(frame, event, arg):
 	#Potential optimization: put caller_string and function_string into a dictionary
 
@@ -23,6 +30,46 @@ def trace(frame, event, arg):
 	funcname = frame.f_code.co_name
 	filename = frame.f_code.co_filename
 	function_string = str(filename)+'.'+str(funcname)
+
+	#monitor performance metrics
+	interval = 10
+	if saved_variables['last_time']==-1:
+		proc.cpu_percent()
+		proc.memory_percent()
+		saved_variables['last_time']=time.time()
+	if int(100*(time.time()-saved_variables['last_time']))>interval:
+		print('performance -- CPU: '+str(proc.cpu_percent())+'% - Memory: '+str(proc.memory_percent())+'%',file=sys.stderr)
+		saved_variables['last_time']=time.time()
+	#monitor network connections
+	open_conections = proc.connections()
+	#check for newly closed connections
+	for connection in open_connections_old:
+		if connection not in open_conections:
+			protocol = 'udp' if connection.status==psutil.CONN_NONE else 'tcp'
+			print('Connection CLOSED by '+function_string+': '+protocol+
+				' connection from '+connection.laddr.ip+':'+str(connection.laddr.port)+
+				' to '+connection.raddr.ip+':'+str(connection.laddr.port),file=sys.stderr)
+			open_connections_old.remove(connection)
+	#check for newly opened connections
+	for connection in open_conections:
+		if connection not in open_connections_old:
+			protocol = 'udp' if connection.status==psutil.CONN_NONE else 'tcp'
+			print('Connection OPENED by '+function_string+': '+protocol+
+				' connection from '+connection.laddr.ip+':'+str(connection.laddr.port)+
+				' to '+connection.raddr.ip+':'+str(connection.laddr.port),file=sys.stderr)
+			open_connections_old.append(connection)
+
+	open_files=proc.open_files()
+	for open_file in open_files_old:
+		if open_file not in open_files:
+			acces_type = open_file.mode
+			print('File CLOSED by '+function_string+' - Path: '+open_file.path,file=sys.stderr)#TODO give more details about file
+			open_files_old.remove(open_file)
+	for open_file in open_files:
+		if open_file not in open_files_old:
+			acces_type = open_file.mode
+			print('File OPENED by '+function_string+' in mode \''+acces_type+'\' - Path: '+open_file.path,file=sys.stderr)#TODO give more details about file
+			open_files_old.append(open_file)
 
 	#getting who called the code
 	has_caller = frame.f_back is not None
@@ -41,7 +88,11 @@ def trace(frame, event, arg):
 		#taking out the time for frame
 		time_elapsed_ms = round((time.time()-frame_time_dict[frame])*1000,6)
 		print('return from \t'+function_string+' to '+caller_string+' - time elapsed: '+str(time_elapsed_ms)+"ms",file=sys.stderr)
-
+	if event=='exception':
+		#TODO manually get traceback by calling the f_back objects and saving last called line per frame
+		print('exception in \t'+function_string+' at line '+str(saved_variables['last_line'])+': '+str(arg), file=sys.stderr)
+	if event=='line':
+		saved_variables['last_line']=frame.f_lineno
 	#need to return tracefunc so that it still works after functioncalls
 	return trace
 
