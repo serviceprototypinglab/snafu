@@ -481,7 +481,7 @@ class Snafu:
 		if not os.path.isfile("snafulib/executors/java/cexec"):
 			pwd = os.getcwd()
 			os.chdir("snafulib/executors/c")
-			os.system("gcc -Wall -O2 -ldl -o cexec cexec.c")
+			os.system("gcc -Wall -O2 -o cexec cexec.c -ldl")
 			os.chdir(pwd)
 
 		if source.endswith(".c"):
