@@ -18,6 +18,15 @@ import subprocess
 import shutil
 import threading
 
+parsermapping = {
+	"c": "c",
+	"c": "so",
+	"java": "class",
+	"java": "java",
+	"python": "py",
+	"javascript": "js"
+}
+
 executormapping = {
 	"c": "so",
 	"docker": None,
@@ -43,6 +52,14 @@ def selectexecutors(argsexecutor):
 				executors[ex] = executor
 	executors = list(set(executors.values()))
 	return executors
+
+def selectparsers(argsparser):
+	parsers = {"py": "python", "js": "javascript", "class": "java", "java": "java", "so": "c", "c": "c"}
+	for parser in argsparser:
+		if parsermapping[parser]:
+			parsers[parsermapping[parser]] = parser
+	parsers = list(set(parsers.values()))
+	return parsers
 
 class SnafuFunctionSource:
 	def __init__(self, source, scan=True):
@@ -114,6 +131,7 @@ class Snafu:
 	def __init__(self, quiet=False):
 		self.functions = {}
 		self.quiet = quiet
+		self.parsermods = []
 		self.connectormods = []
 		self.loggermods = []
 		self.interactive = False
@@ -123,6 +141,16 @@ class Snafu:
 		self.threads = []
 		self.externalexecutor = None
 		self.configpath = None
+
+	def setupparsers(self, parsers):
+		if not self.quiet:
+			for parser in parsers:
+				print("+ parser:", parser)
+
+		self.parsermods = []
+		for parser in parsers:
+			mod = importlib.import_module("snafulib.parsers." + parser)
+			self.parsermods.append(mod)
 
 	def setupexecutors(self, executors):
 		if not self.quiet:
@@ -372,222 +400,15 @@ class Snafu:
 			if not handled:
 				time.sleep(5)
 
-	def activatejavascriptfile(self, source, convention):
-		if not self.quiet:
-			print("» javascript module:", source)
-
-		try:
-			import pyesprima.pyesprima3
-		except:
-			if not self.quiet:
-				print("Warning: javascript parser not ready for {}, skipping.".format(source), file=sys.stderr)
-			return
-
-		#pyesprima.pyesprima3.unichr = chr
-
-		try:
-			ast = pyesprima.pyesprima3.parse(open(source).read())
-		except Exception as e:
-			if not self.quiet:
-				print("Warning: {} is not parseable, skipping. [{}]".format(source, e), file=sys.stderr)
-			return
-
-		for body in ast.body:
-			if body.type == "FunctionDeclaration":
-				funcname = body["id"]["name"]
-				if funcname == "main":
-					funcname = os.path.basename(source).split(".")[0] + "." + funcname
-					if not self.quiet:
-						print("  function: {}".format(funcname))
-					sourceinfos = SnafuFunctionSource(source, scan=False)
-					funcparams = ["input"]
-					self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
-				else:
-					if not self.quiet:
-						print("  skip function {}".format(funcname))
-			elif body.type == "ExpressionStatement":
-				if body.expression.left.type == "MemberExpression":
-					if body.expression.left.object.name == "exports":
-						funcname = body.expression.left.property.name
-						funcname = os.path.basename(source).split(".")[0] + "." + funcname
-						if not self.quiet:
-							print("  function: {}".format(funcname))
-						sourceinfos = SnafuFunctionSource(source, scan=False)
-						funcparams = ["req", "res"]
-						self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
-
-	def activatejavafile(self, source, convention):
-		if not os.path.isfile("snafulib/executors/java/JavaExec.class"):
-			pwd = os.getcwd()
-			os.chdir("snafulib/executors/java")
-			os.system("javac JavaExec.java")
-			os.chdir(pwd)
-
-		funcname = None
-		configname = source.split(".")[0] + ".config"
-		if os.path.isfile(configname):
-			if not self.quiet:
-				print("  config:", configname)
-			config = json.load(open(configname))
-			if config:
-				funcname = config["FunctionName"]
-		else:
-			if convention == "lambda":
-				if not self.quiet:
-					print("  skip source {}".format(source))
-				return
-
-		if source.endswith(".java"):
-			binfile = source.replace(".java", ".class")
-			if not os.path.isfile(binfile):
-				if not self.quiet:
-					print("» java source:", source)
-				pwd = os.getcwd()
-				os.chdir(os.path.dirname(source))
-				os.system("javac {}".format(os.path.basename(source)))
-				os.chdir(pwd)
-				source = binfile
-			else:
-				return
-
-		if not self.quiet:
-			print("» java module:", source)
-
-		if funcname:
-			# FIXME: shortcut leading to non-executable code for Lambda-imported Java
-			if not self.quiet:
-				print("  function: {}".format(funcname))
-			sourceinfos = SnafuFunctionSource(source, scan=False)
-			self.functions[funcname] = ([funcname], None, sourceinfos)
-			return
-
-		#javacmd = "java -cp executors/java/:{} JavaExec {} fib 3".format(os.path.dirname(source), os.path.basename(source).split(".")[0])
-		#javacmd = "java JavaExec Hello myHandler 5 null"
-		#print("JAVA", javacmd)
-		javacmd = "java -cp snafulib/executors/java/:{} JavaExec {} SCAN".format(os.path.dirname(source), os.path.basename(source).split(".")[0])
-		#os.system(javacmd)
-		out, err = subprocess.Popen(javacmd, shell=True, stdout=subprocess.PIPE).communicate()
-		for funcname in out.decode("utf-8").split("\n"):
-			if not funcname:
-				continue
-			funcname, *funcparams = funcname.split(" ")
-			funcname = os.path.basename(source).split(".")[0] + "." + funcname
-			if not self.quiet:
-				print("  function: {}".format(funcname))
-			sourceinfos = SnafuFunctionSource(source, scan=False)
-			self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
-
-	def activatecfile(self, source, convention):
-		if not os.path.isfile("snafulib/executors/java/cexec"):
-			pwd = os.getcwd()
-			os.chdir("snafulib/executors/c")
-			os.system("gcc -Wall -O2 -o cexec cexec.c -ldl")
-			os.chdir(pwd)
-
-		if source.endswith(".c"):
-			binfile = source.replace(".c", ".so")
-			if not os.path.isfile(binfile):
-				if not self.quiet:
-					print("» c source:", source)
-				pwd = os.getcwd()
-				os.chdir(os.path.dirname(source))
-				os.system("gcc -Wall -O2 -fPIC -shared -o {} {}".format(os.path.basename(binfile), os.path.basename(source)))
-				os.chdir(pwd)
-				source = binfile
-			else:
-				return
-
-		if not self.quiet:
-			print("» c module:", source)
-
-		funcname = os.path.basename(source).replace(".", "_") + ".handler"
-		funcparams = ["input"]
-		if not self.quiet:
-			print("  function: {} (unchecked)".format(funcname))
-		sourceinfos = SnafuFunctionSource(source, scan=False)
-		self.functions[funcname] = ([funcname] + funcparams, None, sourceinfos)
-
-	def activatefile(self, source, convention):
-		sourceinfos = None
-		try:
-			sourceinfos = SnafuFunctionSource(source)
-			sourcecode = sourceinfos.content
-		except:
-			print("Warning: {} is not parseable, skipping.".format(source), file=sys.stderr)
-			return
-		if not self.quiet:
-			print("» module:", source)
-
-		handler = None
-		config = None
-		configname = source.split(".")[0] + ".config"
-		if os.path.isfile(configname):
-			if not self.quiet:
-				print("  config:", configname)
-			config = json.load(open(configname))
-			if config:
-				if "Handler" in config:
-					handler = config["Handler"]
-
-		connectorconfig = None
-		connectorconfigname = source.split(".")[0] + ".ini"
-		if os.path.isfile(connectorconfigname):
-			if not self.quiet:
-				print("  connectors:", connectorconfigname)
-			connectorconfig = connectorconfigname
-
-		sourcetree = ast.parse(sourcecode)
-		loader = importlib.machinery.SourceFileLoader(os.path.basename(source), source)
-		mod = types.ModuleType(loader.name)
-		sourceinfos.module = mod
-		if not os.path.dirname(source) in sys.path:
-			sys.path.append(os.path.dirname(source))
-		try:
-			loader.exec_module(mod)
-		except Exception as e:
-			if not self.quiet:
-				print("  Warning: skipping due to import error: {}".format(e))
-			return
-		sourcename = os.path.basename(source).split(".")[0]
-		for node in ast.walk(sourcetree):
-			if type(node) == ast.FunctionDef:
-				if not handler:
-					handlername = "lambda_handler"
-					handlerbase = sourcename
-				else:
-					handlerbase, handlername = handler.split(".")
-				if convention not in ("lambda", "openwhisk") or (node.name == handlername and sourcename == handlerbase):
-					funcname = sourcename + "." + node.name
-					if config and "FunctionName" in config and convention in ("lambda", "openwhisk"):
-						funcname = config["FunctionName"]
-					try:
-						func = getattr(mod, node.name)
-					except:
-						print("  skip method {}.{}".format(sourcename, node.name))
-					else:
-						if not self.quiet:
-							print("  function: {}".format(funcname))
-						#if not node.name in self.functions:
-						#	self.functions[node.name] = {}
-						#self.functions[node.name][sourcename] = (func, config, sourceinfos)
-						self.functions[funcname] = (func, config, sourceinfos)
-						if connectorconfig:
-							self.functionconnectors[funcname] = connectorconfig
-				else:
-					if not self.quiet:
-						print("  skip function {}.{}".format(sourcename, node.name))
-
 	def activate(self, sources, convention, ignore=False):
 		for source in sources:
 			if os.path.isfile(source):
-				if source.endswith(".py"):
-					self.activatefile(source, convention)
-				elif source.endswith(".java") or source.endswith(".class"):
-					self.activatejavafile(source, convention)
-				elif source.endswith(".c") or source.endswith(".so"):
-					self.activatecfile(source, convention)
-				elif source.endswith(".js"):
-					self.activatejavascriptfile(source, convention)
+				for suffixkey, suffixvalue in parsermapping.items():
+					if source.endswith("." + suffixvalue):
+						for mod in self.parsermods:
+							if mod.__name__.endswith(suffixkey):
+								mod.activatefile(self, source, convention, SnafuFunctionSource)
+								break
 			elif os.path.isdir(source):
 				#p = pathlib.Path(source)
 				entries = [os.path.join(source, entry.name) for entry in os.scandir(source) if not entry.name.startswith(".")]
@@ -601,7 +422,8 @@ class SnafuRunner:
 		parser.add_argument("file", nargs="*", help="source file(s) or directories to activate; uses './functions' by default")
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
 		parser.add_argument("-l", "--logger", help="function loggers; 'csv' by default", choices=["csv", "sqlite", "none"], default=["csv"], nargs="+")
-		parser.add_argument("-e", "--executor", help="function executors; 'inmemory' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3", "javascript", "c", "lxc"], default=["inmemory"], nargs="+")
+		parser.add_argument("-e", "--executor", help="function executors; 'inmemory/...' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3", "javascript", "c", "lxc"], default=["inmemory"], nargs="+")
+		parser.add_argument("-f", "--function-parser", help="function parser; 'python/...' by default", choices=["python", "javascript", "java", "c"], default=["python"], nargs="+")
 		parser.add_argument("-s", "--settings", help="location of the settings file; 'snafu.ini' by default")
 
 	def __init__(self):
@@ -626,6 +448,8 @@ class SnafuRunner:
 			exit(-1)
 
 		if not args.execution_target:
+			snafu.setupparsers(selectparsers(args.function_parser))
+			#snafu.parse()
 			snafu.activate(args.file, args.convention, ignore=ignore)
 		snafu.setuploggers(args.logger)
 

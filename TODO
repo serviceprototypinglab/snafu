@@ -38,6 +38,8 @@ available is currently monolithically located in snafu.py. Parsers
 should become a new subsystem class to ease the addition of new ones and
 maintenance of existing ones.
 
+ -> parser code is now available as subsystem, with per-type defaults
+
 There is currently a global default executor which makes it impossible
 to execute functions written in different languages within the same
 session. Rather, there should be a per-function default executor which
@@ -69,6 +71,9 @@ To better debug function execution, a tracing executor should be added
 for at least the Python language. This executor should output statistics
 about local and remote function calls and generally useful information
 from the profile module.
+
+ -> a tracing executor is now available in a forked version
+ https://github.com/Nopx/snafu
 
 A snafu-deploy tool could be developed to quickly deploy functions to
 any cloud provider without going through the hassle of learning the
