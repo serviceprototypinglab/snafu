@@ -18,7 +18,7 @@ class SnafuImportUtility:
 	def start_import(self):
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service - Import Utility")
 		parser.add_argument("-s", "--source", help="import source", choices=["lambda", "gfunctions", "openwhisk"], default=None)
-		parser.add_argument("-t", "--target", help="import target", choices=["snafu", "funktion", "fission", "kubeless"], default="snafu")
+		parser.add_argument("-t", "--target", help="import target", choices=["snafu", "funktion", "fission", "kubeless", "ovh"], default="snafu")
 		parser.add_argument("-c", "--convert", help="convert functions from Python 2 to Python 3 for native execution")
 		parser.add_argument("function", nargs="*", help="function(s) to import - if not specified, import all")
 		args = parser.parse_args()
@@ -74,6 +74,18 @@ class SnafuImportUtility:
 		codeline = code.replace("\n", "\\n")
 		subprocess.run("funktion create fn -n '{}' -s '{}'".format(name, codeline), shell=True)
 		print("+ code: {} (in funktion)".format(os.path.basename(filename)))
+
+	def export_ovh(self, filename, code, name, env):
+		if not code:
+			codefiles = self.archivedfile(filename)
+		configfile = os.path.join(os.path.dirname(codefiles[0]), "functions.yml")
+		f = open(configfile, "w")
+		f.write("functions:\n")
+		f.write(" {}:\n".format(name))
+		f.write("  runtime: python-3.6\n")
+		f.write("  handler: {}.{}\n".format(os.path.basename(codefiles[0]).split(".")[0], name))
+		f.close()
+		subprocess.run("ovh-functions deploy -d {}".format(os.path.dirname(codefiles[0])), shell=True)
 
 	def export_fission(self, filename, code, name, env):
 		if not code:
@@ -160,6 +172,8 @@ class SnafuImportUtility:
 						self.export_fission(filename, code["code"], actioninfo["name"], env)
 					elif target == "kubeless":
 						self.export_kubeless(filename, code["code"], actioninfo["name"], env)
+					elif target == "ovh":
+						self.export_ovh(filename, code["code"], actioninfo["name"], env)
 
 	def import_gfunctions(self, target, functionfilter):
 		proc = subprocess.run("gcloud beta functions list", stdout=subprocess.PIPE, shell=True)
@@ -198,6 +212,8 @@ class SnafuImportUtility:
 							self.export_fission(codezip, None, funcname, env)
 						elif target == "kubeless":
 							self.export_kubeless(codezip, None, funcname, env)
+						elif target == "ovh":
+							self.export_ovh(codezip, None, funcname, env)
 
 	def import_lambda(self, target, convert, functionfilter):
 		proc = subprocess.run("aws lambda list-functions", stdout=subprocess.PIPE, shell=True)
@@ -223,7 +239,7 @@ class SnafuImportUtility:
 
 			env = None
 			runtime = func["Runtime"]
-			if runtime == "python2.7":
+			if runtime == "python2.7" or runtime == "python3.6":
 				env = "python"
 			else:
 				print("- skip ({})".format(runtime))
@@ -237,6 +253,8 @@ class SnafuImportUtility:
 					self.export_fission(codezip, None, funcname, env)
 				elif target == "kubeless":
 					self.export_kubeless(codezip, None, funcname, env)
+				elif target == "ovh":
+					self.export_ovh(codezip, None, funcname, env)
 
 class SnafuImportRunner:
 	def __init__(self):
