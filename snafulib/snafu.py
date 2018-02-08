@@ -430,7 +430,7 @@ class SnafuRunner:
 		parser = argparse.ArgumentParser(description="Snake Functions as a Service")
 		SnafuRunner.add_common_arguments(parser)
 		parser.add_argument("-c", "--convention", help="method call convention", choices=["any", "lambda", "openwhisk"], default="any")
-		parser.add_argument("-C", "--connector", help="function connectors; 'cli' by default", choices=["cli", "web", "messaging", "filesystem", "cron"], default=["cli"], nargs="+")
+		parser.add_argument("-C", "--connector", help="function connectors; 'cli' by default", choices=["cli", "web", "messaging", "filesystem", "cron", "xmpp"], default=["cli"], nargs="+")
 		parser.add_argument("-x", "--execute", help="execute a single function")
 		parser.add_argument("-X", "--execution-target", help="execute function on target service", choices=["lambda", "gfunctions", "openwhisk"], nargs="?")
 		args = parser.parse_args()
