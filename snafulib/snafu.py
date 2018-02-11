@@ -24,6 +24,7 @@ parsermapping = {
 	"java": "class",
 	"java": "java",
 	"python": "py",
+	"lambada": "py",
 	"javascript": "js"
 }
 
@@ -56,7 +57,7 @@ def selectexecutors(argsexecutor):
 def selectparsers(argsparser):
 	parsers = {"py": "python", "js": "javascript", "class": "java", "java": "java", "so": "c", "c": "c"}
 	for parser in argsparser:
-		if parsermapping[parser]:
+		if parser in parsermapping:
 			parsers[parsermapping[parser]] = parser
 	parsers = list(set(parsers.values()))
 	return parsers
@@ -403,12 +404,16 @@ class Snafu:
 	def activate(self, sources, convention, ignore=False):
 		for source in sources:
 			if os.path.isfile(source):
+				handled = False
 				for suffixkey, suffixvalue in parsermapping.items():
 					if source.endswith("." + suffixvalue):
 						for mod in self.parsermods:
 							if mod.__name__.endswith(suffixkey):
+								handled = True
 								mod.activatefile(self, source, convention, SnafuFunctionSource)
 								break
+				if not handled:
+					print("Warning: No parser found for {}, skipping.".format(source), file=sys.stderr)
 			elif os.path.isdir(source):
 				#p = pathlib.Path(source)
 				entries = [os.path.join(source, entry.name) for entry in os.scandir(source) if not entry.name.startswith(".")]
@@ -423,7 +428,7 @@ class SnafuRunner:
 		parser.add_argument("-q", "--quiet", help="operate in quiet mode", action="store_true")
 		parser.add_argument("-l", "--logger", help="function loggers; 'csv' by default", choices=["csv", "sqlite", "none"], default=["csv"], nargs="+")
 		parser.add_argument("-e", "--executor", help="function executors; 'inmemory/...' by default", choices=["inmemory", "inmemstateless", "python2", "python2stateful", "java", "python3", "javascript", "c", "lxc"], default=["inmemory"], nargs="+")
-		parser.add_argument("-f", "--function-parser", help="function parser; 'python/...' by default", choices=["python", "javascript", "java", "c"], default=["python"], nargs="+")
+		parser.add_argument("-f", "--function-parser", help="function parser; 'python/...' by default", choices=["python", "javascript", "java", "c", "lambada"], default=["python"], nargs="+")
 		parser.add_argument("-s", "--settings", help="location of the settings file; 'snafu.ini' by default")
 
 	def __init__(self):
