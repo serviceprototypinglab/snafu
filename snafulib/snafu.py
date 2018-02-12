@@ -405,14 +405,16 @@ class Snafu:
 		for source in sources:
 			if os.path.isfile(source):
 				handled = False
+				needshandling = False
 				for suffixkey, suffixvalue in parsermapping.items():
 					if source.endswith("." + suffixvalue):
+						needshandling = True
 						for mod in self.parsermods:
 							if mod.__name__.endswith(suffixkey):
 								handled = True
 								mod.activatefile(self, source, convention, SnafuFunctionSource)
 								break
-				if not handled:
+				if needshandling and not handled:
 					print("Warning: No parser found for {}, skipping.".format(source), file=sys.stderr)
 			elif os.path.isdir(source):
 				#p = pathlib.Path(source)
