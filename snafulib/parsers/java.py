@@ -1,6 +1,7 @@
 # Snafu: Snake Functions - Java Parser
 
 import os
+import subprocess
 
 def activatefile(self, source, convention, SnafuFunctionSource):
 	if not os.path.isfile("snafulib/executors/java/JavaExec.class"):
