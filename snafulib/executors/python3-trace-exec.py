@@ -15,6 +15,7 @@ class Context:
     def __init__(self):
         self.SnafuContext = self
 
+
     # def __new__(self):
     #	self.SnafuContext = self
     #	return self
@@ -29,10 +30,11 @@ proc = psutil.Process(os.getpid())
 time_now = datetime.datetime.fromtimestamp(time.time()).strftime('%y%m%d-%H%M')
 short_uuid = uuid.uuid4().hex[0:8]
 func_name = sys.argv[2]
-file_to_print_to_name = "trace_log-"+func_name+"-"+time_now+'-'+short_uuid+".log"
+file_to_print_to_name = "trace_log-" + func_name + \
+    "-" + time_now + '-' + short_uuid + ".log"
 file_to_print_to = open(file_to_print_to_name, 'w')
 
-print("Printing trace to "+file_to_print_to_name, file=sys.stderr)
+print("Printing trace to " + file_to_print_to_name, file=sys.stderr)
 
 
 def trace(frame, event, arg):
@@ -135,7 +137,7 @@ def trace(frame, event, arg):
     if event == 'exception':
         # TODO manually get traceback by calling the f_back objects and saving
         # last called line per frame
-        print('exception in \t' + function_string + ' at line ' +
+        print('exception in \t' + function_string + ' at line ' + \
               str(saved_variables['last_line']) + ': ' + str(arg), file=file_to_print_to)
     if event == 'line':
         saved_variables['last_line'] = frame.f_lineno
