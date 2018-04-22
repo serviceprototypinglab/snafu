@@ -294,7 +294,7 @@ class SnafuControl:
 			if os.path.isfile(zippath):
 				path = zippath
 				mode = "rb"
-				
+
 			content = open(path, mode).read()
 		except:
 			err = json.dumps({"errorMessage": "NoZipFilePresent"})
@@ -540,6 +540,7 @@ class SnafuControl:
 		# FIXME: should now provide the choice between lambda, gfunctions and openwhisk depending on modular activation
 
 		self.snafu.configpath = args.settings
+		self.snafu.setupparsers(snafulib.snafu.selectparsers(args.function_parser))
 		self.snafu.activate(args.file, "lambda", ignore=ignore)
 		self.snafu.setuploggers(args.logger)
 		self.snafu.setupexecutors(snafulib.snafu.selectexecutors(args.executor))
