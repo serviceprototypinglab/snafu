@@ -15,3 +15,5 @@ yourserver.key
 pyvenv/
 
 *.zip
+
+trace_*.log

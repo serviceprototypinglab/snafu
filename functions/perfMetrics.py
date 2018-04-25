@@ -1,3 +1,5 @@
+# Performance metrics generation, useful for testing python3trace executor
+
 import psutil
 import os
 import sys

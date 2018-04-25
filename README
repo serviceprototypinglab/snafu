@@ -170,8 +170,9 @@ and piloting settings.
 
 Licence
 -------
-(☺) 2017 Josef Spillner <josef.spillner@zhaw.ch>
-(C) 2017 Zürcher Hochschule für Angewandte Wissenschaften
+(☺) 2017, 2018 Josef Spillner <josef.spillner@zhaw.ch>
+    with contributions from Tobias Brunner, Bernard Jollans and others
+(C) 2017, 2018 Zürcher Hochschule für Angewandte Wissenschaften
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use any file in this repository except in compliance with
