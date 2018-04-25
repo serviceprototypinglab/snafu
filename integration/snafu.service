@@ -1,0 +1,6 @@
+[Unit]
+Description=Snafu
+
+[Service]
+ExecStart=/bin/bash /opt/snafu-control.sh
+ExecStop=/bin/sleep 2

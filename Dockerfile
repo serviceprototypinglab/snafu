@@ -1,3 +1,4 @@
+# prep  >> git status --ignored --porcelain
 # build >> sudo docker build -t snafu .
 # debug >> sudo docker run -ti snafu bash
 # run   >> sudo docker run -p 10000:10000 -ti snafu
@@ -40,6 +41,8 @@ RUN chmod +x /usr/bin/wsk
 
 RUN pip install pyesprima
 RUN rm /usr/local/lib/python3.6/site-packages/pyesprima/__init__.py
+
+COPY integration/snafu.service /etc/systemd/system/
 
 EXPOSE 10000
 

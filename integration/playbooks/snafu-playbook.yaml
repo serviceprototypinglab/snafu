@@ -1,0 +1,11 @@
+---
+- hosts: faas:localhost
+  vars:
+    foo: bar
+  remote_user: root
+  tasks:
+  - name: start up snafu
+    service:
+      name: snafu
+      state: started
+      enabled: yes

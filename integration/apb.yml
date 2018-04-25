@@ -1,0 +1,13 @@
+version: 1.0
+name: snafu-apb
+description: Snafu integration as Ansible Playbook Bundle into OpenShift/Kubernetes
+bindable: False
+async: optional
+metadata:
+  displayName: my-test
+plans:
+  - name: default
+    description: This default plan deploys snafu-apb
+    free: True
+    metadata: {}
+    parameters: []
