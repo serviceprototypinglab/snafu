@@ -1,5 +1,5 @@
 all:
-	@echo You need to run 'make install/test/apbtest' explicitly.
+	@echo You need to run 'make install/test/apbtest/helmtest' explicitly.
 
 install:
 	sudo cp snafu.service /etc/systemd/system/
@@ -11,3 +11,6 @@ test:
 apbtest:
 	cp playbooks/snafu-playbook.yaml playbooks/provision.yml
 	apb prepare
+
+helmtest:
+	helm install --dry-run --debug snafu-helmchart
