@@ -1,3 +1,4 @@
+# prep  >> git status --ignored --porcelain
 # build >> (sudo) docker build -t snafu . # -> now use: build-docker-images.sh
 # debug >> (sudo) docker run -ti snafu bash
 # run   >> (sudo) docker run -p 10000:10000 -ti snafu
@@ -33,6 +34,8 @@ ENV PYTHONPATH=/usr/lib/python3/dist-packages
 RUN mkdir -p ~/.aws && \
     echo "[default]\nregion = invalid" > ~/.aws/config && \
     echo "[snafu]\nlogger.csv = /opt/functions-local/.snafu.csv" > /opt/snafu.ini
+
+COPY integration/snafu.service /etc/systemd/system/
 
 EXPOSE 10000
 
