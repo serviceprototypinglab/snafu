@@ -3,7 +3,7 @@
 import os
 
 def activatefile(self, source, convention, SnafuFunctionSource):
-	if not os.path.isfile("snafulib/executors/java/cexec"):
+	if not os.path.isfile("snafulib/executors/c/cexec"):
 		pwd = os.getcwd()
 		os.chdir("snafulib/executors/c")
 		os.system("gcc -Wall -O2 -o cexec cexec.c -ldl")

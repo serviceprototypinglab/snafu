@@ -19,10 +19,8 @@ import shutil
 import threading
 
 parsermapping = {
-	"c": "c",
-	"c": "so",
-	"java": "class",
-	"java": "java",
+	"c": ["c", "so"],
+	"java": ["java", "class"],
 	"python": "py",
 	"lambada": "py",
 	"javascript": "js"
@@ -59,7 +57,11 @@ def selectparsers(argsparser):
 	parsers = {"py": "python", "js": "javascript", "class": "java", "java": "java", "so": "c", "c": "c"}
 	for parser in argsparser:
 		if parser in parsermapping:
-			parsers[parsermapping[parser]] = parser
+			if type(parsermapping[parser]) == str:
+				parsers[parsermapping[parser]] = parser
+			else:
+				for mapping in parsermapping[parser]:
+					parsers[mapping] = parser
 	parsers = list(set(parsers.values()))
 	return parsers
 
@@ -407,14 +409,15 @@ class Snafu:
 			if os.path.isfile(source):
 				handled = False
 				needshandling = False
-				for suffixkey, suffixvalue in parsermapping.items():
-					if source.endswith("." + suffixvalue):
-						needshandling = True
-						for mod in self.parsermods:
-							if mod.__name__.endswith(suffixkey):
-								handled = True
-								mod.activatefile(self, source, convention, SnafuFunctionSource)
-								break
+				for suffixkey, suffixvalues in parsermapping.items():
+					for suffixvalue in suffixvalues:
+						if source.endswith("." + suffixvalue):
+							needshandling = True
+							for mod in self.parsermods:
+								if mod.__name__.endswith(suffixkey):
+									handled = True
+									mod.activatefile(self, source, convention, SnafuFunctionSource)
+									break
 				if needshandling and not handled:
 					print("Warning: No parser found for {}, skipping.".format(source), file=sys.stderr)
 			elif os.path.isdir(source):
