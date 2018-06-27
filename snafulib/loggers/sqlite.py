@@ -4,11 +4,13 @@ import sqlite3
 import os
 import configparser
 
-def log(source, function, duration, success):
+def log(source, function, duration, success, configpath):
 	logurl = "/tmp/snafu.sqlite"
-	if os.path.isfile("snafu.ini"):
+	if not configpath:
+		configpath = "snafu.ini"
+	if os.path.isfile(configpath):
 		config = configparser.ConfigParser()
-		config.read("snafu.ini")
+		config.read(configpath)
 		if "snafu" in config and "logger.sqlite" in config["snafu"]:
 			logurl = config["snafu"]["logger.sqlite"]
 

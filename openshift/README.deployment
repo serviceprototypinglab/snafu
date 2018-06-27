@@ -1,0 +1,24 @@
+Snafu is prepared to run in single-tenant and multi-tenant cloud
+environments with integration into OpenShift and Kubernetes.
+
+OpenShift
+---------
+
+Files:
+ snafu-control-template.yaml
+ snafu-template.yaml
+
+For the time being, refer to the instructions in this blog post (in
+German language):
+
+https://blog.vshn.ch/2017/09/serverless-computing-functions-as-a-service-mit-appuio-und-snafu
+
+Kubernetes
+----------
+
+Files:
+ snafu-control-kubernetes-nodeport.yaml
+
+This is a restricted setup without authentication. Furthermore, as
+opposed to its default port number 10000, Snafu listens on port 31000.
+Deploy this on your Kubernetes cluster with kubectl create -f <yaml>.

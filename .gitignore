@@ -8,3 +8,12 @@ _*
 build/
 dist/
 snafu.egg-info/
+
+yourserver.crt
+yourserver.key
+
+pyvenv/
+
+*.zip
+
+trace_*.log

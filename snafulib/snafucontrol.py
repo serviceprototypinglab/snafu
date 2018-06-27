@@ -12,6 +12,7 @@ import logging
 import importlib
 import threading
 import time
+import shutil
 
 """
 AWS CLI support
@@ -24,7 +25,7 @@ create-event-source-mapping
 * create-function
 delete-alias
 delete-event-source-mapping
-delete-function
+* delete-function
 get-account-settings
 get-alias
 get-event-source-mapping
@@ -187,6 +188,7 @@ class SnafuControl:
 	port = None
 	snafu = None
 	authenticatormods = []
+	passive = False
 
 	def __init__(self):
 		pass
@@ -250,6 +252,8 @@ class SnafuControl:
 	@app.route("/api/v1/namespaces/<namespace>/actions/<function>", methods=["POST"])
 	# ?blocking=true&result=true
 	def invokeopenwhisk(namespace, function):
+		if SnafuControl.passive:
+			return ControlUtil.notauthorised()
 		data = flask.request.data.decode("utf-8")
 		dataargs = json.loads(data)
 		#print("F", function, dataargs)
@@ -272,6 +276,8 @@ class SnafuControl:
 
 	@app.route("/v1beta2/projects/<project>/locations/<location>/functions/<function>", methods=["POST"])
 	def invokegoogle(project, location, function):
+		if SnafuControl.passive:
+			return ControlUtil.notauthorised()
 		function = function.split(":")[0]
 		response = SnafuControl.snafu.execute(function)
 		return json.dumps(response)
@@ -280,7 +286,16 @@ class SnafuControl:
 	def functiondownload(function):
 		func, config, sourceinfos = SnafuControl.snafu.functions[function]
 		try:
-			content = open(sourceinfos.source).read()
+			path = sourceinfos.source
+			mode = "r"
+			dirname = os.path.dirname(sourceinfos.source)
+			pdirname = os.path.dirname(os.path.abspath(os.path.join(sourceinfos.source, "..")))
+			zippath = os.path.join(pdirname, os.path.basename(dirname) + ".zip")
+			if os.path.isfile(zippath):
+				path = zippath
+				mode = "rb"
+
+			content = open(path, mode).read()
 		except:
 			err = json.dumps({"errorMessage": "NoZipFilePresent"})
 			return err, 501
@@ -319,6 +334,8 @@ class SnafuControl:
 		#snafulib.snafu.SnafuImport.prepare()
 		snafulib.snafu.SnafuImport.importfunction(functionname, codezip, config, convert=True)
 
+		SnafuControl.snafu.activate([snafulib.snafu.SnafuImport.functiondir], "lambda")
+
 		return json.dumps(config)
 
 	@app.route("/2015-03-31/functions/")
@@ -335,20 +352,35 @@ class SnafuControl:
 		functions = {"Functions" : f}
 		return json.dumps(functions)
 
-	@app.route("/2015-03-31/functions/<function>")
+	@app.route("/2015-03-31/functions/<function>", methods=["GET", "DELETE"])
 	def getfunction(function):
 		auth = SnafuControl.authorise()
 		if not auth:
 			return ControlUtil.notauthorised()
 
 		if function in SnafuControl.snafu.functions:
-			funccode = {}
-			funccode["RepositoryType"] = "snafu"
-			funccode["Location"] = "http://localhost:{}/function-download/{}.zip".format(SnafuControl.port, function)
-			func = {}
-			func["Code"] = funccode
-			func["Configuration"] = ControlUtil.functionconfiguration(function)
-			return json.dumps(func)
+			if flask.request.method == "GET":
+				funccode = {}
+				funccode["RepositoryType"] = "snafu"
+				funccode["Location"] = "http://localhost:{}/function-download/{}.zip".format(SnafuControl.port, function)
+				func = {}
+				func["Code"] = funccode
+				func["Configuration"] = ControlUtil.functionconfiguration(function)
+				return json.dumps(func)
+			elif flask.request.method == "DELETE":
+				if auth[1]:
+					functiondir = "functions-tenants/{}/{}".format(auth[1], function)
+				else:
+					functiondir = "functions-local/{}".format(function)
+
+				if os.path.isdir(functiondir):
+					shutil.rmtree(functiondir)
+					if os.path.isfile(functiondir + ".zip"):
+						os.remove(functiondir + ".zip")
+					return json.dumps({})
+				else:
+					err = json.dumps({"errorMessage": "ResourceNotFoundException"})
+					return err, 501
 		else:
 			err = json.dumps({"errorMessage": "ResourceNotFoundException"})
 			return err, 501
@@ -387,6 +419,8 @@ class SnafuControl:
 		auth = SnafuControl.authorise()
 		if not auth:
 			return ControlUtil.notauthorised()
+		if SnafuControl.passive:
+			return ControlUtil.notauthorised()
 
 		if function in SnafuControl.snafu.functions:
 			if flask.request.method == "GET":
@@ -408,6 +442,8 @@ class SnafuControl:
 		auth = SnafuControl.authorise()
 		if not auth:
 			return ControlUtil.notauthorised()
+		if SnafuControl.passive:
+			return ControlUtil.notauthorised()
 
 		data = flask.request.data.decode("utf-8")
 		"""
@@ -422,8 +458,10 @@ class SnafuControl:
 		auth = SnafuControl.authorise()
 		if not auth:
 			return ControlUtil.notauthorised()
+		if SnafuControl.passive:
+			return ControlUtil.notauthorised()
 
-		if SnafuControl.snafu.executormods[0].__name__ == "executors.docker":
+		if SnafuControl.snafu.executormods[0].__name__ == "snafulib.executors.docker":
 			response = SnafuControl.snafu.executormods[0].executecontrol(flask.request, auth[1])
 		else:
 			dataargs = {}
@@ -479,6 +517,7 @@ class SnafuControl:
 		parser.add_argument("-p", "--port", help="HTTP port number", type=int, default=10000)
 		parser.add_argument("-r", "--reaper", help="closed connection reaper", action="store_true")
 		parser.add_argument("-d", "--deployer", help="automated hot deployment", action="store_true")
+		parser.add_argument("-P", "--passive", help="passive mode without function execution", action="store_true")
 
 		for action in parser._actions:
 			if action.dest == "executor":
@@ -497,7 +536,11 @@ class SnafuControl:
 
 		SnafuControl.snafu = snafulib.snafu.Snafu(args.quiet)
 		SnafuControl.port = args.port
+		SnafuControl.passive = args.passive
 		# FIXME: should now provide the choice between lambda, gfunctions and openwhisk depending on modular activation
+
+		self.snafu.configpath = args.settings
+		self.snafu.setupparsers(snafulib.snafu.selectparsers(args.function_parser))
 		self.snafu.activate(args.file, "lambda", ignore=ignore)
 		self.snafu.setuploggers(args.logger)
 		self.snafu.setupexecutors(snafulib.snafu.selectexecutors(args.executor))
@@ -515,7 +558,17 @@ class SnafuControl:
 			print("+ deployer")
 			ControlUtil.deployer(SnafuControl.snafu)
 
-		self.app.run(host="0.0.0.0", port=args.port, threaded=True)
+		context = None
+		if args.port == 443 or args.port == 10443:
+			print("+ tls activation")
+			#import flask_sslify
+			#sslify = flask_sslify.SSLify(self.app)
+			import ssl
+			context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+			context.load_cert_chain('yourserver.crt', 'yourserver.key')
+			#context="adhoc"
+
+		self.app.run(host="0.0.0.0", port=args.port, threaded=True, ssl_context=context)
 
 class SnafuControlRunner:
 	def __init__(self):

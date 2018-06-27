@@ -38,6 +38,8 @@ available is currently monolithically located in snafu.py. Parsers
 should become a new subsystem class to ease the addition of new ones and
 maintenance of existing ones.
 
+ -> parser code is now available as subsystem, with per-type defaults
+
 There is currently a global default executor which makes it impossible
 to execute functions written in different languages within the same
 session. Rather, there should be a per-function default executor which
@@ -58,3 +60,32 @@ distinguish OpenWhisk from Google Cloud Functions. This should be
 consistently extended to all APIs implemented in snafu-control and made
 available to the -c flag. (For consistency with other subsystems, -c/-C
 should also be swapped.)
+
+The JavaScript parser based on PyEsprima does not handle complex
+JavaScript code. The Esprima online demo however parses it correctly.
+The alternatives (Esprima-Python, PyJSParser) all bail. Therefore, an
+alternative implementation is to install and run esprima as separate
+process and parse the JSON output to get the exported function names.
+
+To better debug function execution, a tracing executor should be added
+for at least the Python language. This executor should output statistics
+about local and remote function calls and generally useful information
+from the profile module.
+
+ -> a tracing executor is now available in a forked version
+ https://github.com/Nopx/snafu
+
+A snafu-deploy tool could be developed to quickly deploy functions to
+any cloud provider without going through the hassle of learning the
+provider-dependent deployment tools. Execution is then possible through
+snafu -X.
+
+A marketplace is needed to host functions. For its implementation, a
+passive snafu-control mode which only allows for function management but
+not for execution would be suitable.
+
+ -> simple passive mode is now implemented
+
+# Misc:
+# better error messages for docker (+ maybe docker also for pure snafu)
+# check for oracle functions

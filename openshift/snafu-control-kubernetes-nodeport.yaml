@@ -1,0 +1,51 @@
+apiVersion: v1
+items:
+- apiVersion: v1
+  data:
+    snafu.ini: |
+      [snafu]
+      logger.csv = /tmp/snafu.csv
+      connector.web = 8080
+  kind: ConfigMap
+  metadata:
+    name: config-snafu-control
+- apiVersion: v1
+  data:
+    .snafu-accounts: |
+      [account0]
+      access_key_id = mykey
+      secret_access_key = mayccesskey
+  kind: ConfigMap
+  metadata:
+    name: snafu-accounts
+- apiVersion: apps/v1beta1
+  kind: Deployment
+  metadata:
+    name: snafu-control-deployment
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: snafu-control
+      spec:
+        containers:
+        - name: snafu-control
+          image: jszhaw/snafu
+          ports:
+          - containerPort: 10000
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: snafu-control-service
+  spec:
+    ports:
+    - protocol: TCP
+      port: 10000
+      targetPort: 10000
+      nodePort: 31000
+    selector:
+      app: snafu-control
+    type: NodePort
+kind: List
+metadata: {}
