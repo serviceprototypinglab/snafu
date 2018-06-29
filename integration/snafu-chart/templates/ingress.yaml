@@ -1,14 +1,13 @@
 {{- if .Values.ingress.enabled -}}
-{{- $fullName := include "snafu-helmchart.fullname" . -}}
-{{- $servicePort := .Values.service.port -}}
+{{- $fullName := include "snafu-chart.fullname" . -}}
 {{- $ingressPath := .Values.ingress.path -}}
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: {{ $fullName }}
   labels:
-    app: {{ template "snafu-helmchart.name" . }}
-    chart: {{ template "snafu-helmchart.chart" . }}
+    app: {{ template "snafu-chart.name" . }}
+    chart: {{ template "snafu-chart.chart" . }}
     release: {{ .Release.Name }}
     heritage: {{ .Release.Service }}
 {{- with .Values.ingress.annotations }}

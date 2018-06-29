@@ -1,0 +1,9 @@
+apiVersion: v1
+data:
+  snafu.ini: |
+    [snafu]
+    logger.csv = /tmp/snafu.csv
+    connector.web = 8080
+kind: ConfigMap
+metadata:
+  name: {{ .Values.snafuini.name }}

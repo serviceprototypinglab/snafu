@@ -1,3 +1,6 @@
+#NS=`oc config get-contexts | grep ^* | awk '{print $5}'`
+NS=`grep ^current-context ~/.kube/config | cut -d ":" -f 2 | cut -d "/" -f 1 | tr -d " "`
+
 all:
 	@echo You need to run 'make install/test/apbtest/helmtest' explicitly.
 
@@ -13,4 +16,6 @@ apbtest:
 	apb prepare
 
 helmtest:
-	helm install --dry-run --debug snafu-helmchart
+	helm lint snafu-chart
+	helm init --tiller-namespace $(NS)
+	helm install --dry-run --debug --tiller-namespace $(NS) snafu-chart
