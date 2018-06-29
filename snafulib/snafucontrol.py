@@ -203,6 +203,10 @@ class SnafuControl:
 	def s3meta(bucket, dir, objectname):
 		return "{\"python_ver\": \"3.5\"}"
 
+	@app.route("/", methods=["GET"])
+	def indexpage():
+		return "This is Snafu's control plane. Interact with it through the supported protocols (OpenWhisk, Google Cloud Functions, AWS Lambda)"
+
 	@app.route("/", methods=["POST"])
 	def sts_iam():
 		if "Action" in flask.request.form:
