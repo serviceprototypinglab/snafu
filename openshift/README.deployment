@@ -13,6 +13,20 @@ German language):
 
 https://blog.vshn.ch/2017/09/serverless-computing-functions-as-a-service-mit-appuio-und-snafu
 
+Brief instructions:
+
+ PROJECT=`oc config get-contexts | grep ^* | awk '{print $5}'`
+ oc -n $PROJECT process -f snafu-control-template.yaml | oc -n $PROJECT create -f -
+
+ ~/.aws/credentials:
+ [default]
+ aws_access_key_id = mykey
+ aws_secret_access_key = myaccesskey
+
+ alias aws="aws --endpoint-url http://snafu-control-$PROJECT.appuioapp.ch"
+ aws lambda list-functions
+ aws lambda invoke --function-name lambda.lambda_handler --payload '{"event": "test"}' /dev/stdout
+
 Kubernetes
 ----------
 

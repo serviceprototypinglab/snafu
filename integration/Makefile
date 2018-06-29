@@ -18,4 +18,5 @@ apbtest:
 helmtest:
 	helm lint snafu-chart
 	helm init --tiller-namespace $(NS)
+	#oc policy add-role-to-user edit "system:serviceaccount:$(NS):tiller"
 	helm install --dry-run --debug --tiller-namespace $(NS) snafu-chart
