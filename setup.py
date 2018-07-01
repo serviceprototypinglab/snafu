@@ -10,7 +10,7 @@ import os
 setup(
 	name="snafu",
 	description="Swiss Army Knife of Serverless Computing",
-	version="0.0.1",
+	version="0.0.2",
 	url="https://github.com/serviceprototypinglab/snafu",
 	author="Josef Spillner",
 	author_email="josef.spillner@zhaw.ch",
