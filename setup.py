@@ -7,10 +7,14 @@
 from setuptools import setup
 import os
 
+with open("README", "r") as fh:
+	long_description = fh.read()
+
 setup(
 	name="snafu",
 	description="Swiss Army Knife of Serverless Computing",
-	version="0.0.2",
+	long_description=long_description,
+	version="0.0.3",
 	url="https://github.com/serviceprototypinglab/snafu",
 	author="Josef Spillner",
 	author_email="josef.spillner@zhaw.ch",
