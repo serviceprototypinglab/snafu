@@ -6,6 +6,7 @@ FROM jszhaw/snafu
 
 RUN \
     # AWS CLI client / Docker CLI client
+    apt-get update && \
     apt-get install -y --no-install-recommends \
       awscli \
       docker.io \
