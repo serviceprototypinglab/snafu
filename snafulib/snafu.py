@@ -147,14 +147,19 @@ class Snafu:
 		self.configpath = None
 
 	def setupparsers(self, parsers):
-		if not self.quiet:
-			for parser in parsers:
-				print("+ parser:", parser)
-
 		self.parsermods = []
 		for parser in parsers:
 			mod = importlib.import_module("snafulib.parsers." + parser)
-			self.parsermods.append(mod)
+			if "precheck" in dir(mod):
+				ok = mod.precheck()
+				if not self.quiet:
+					print("+ parser: {} ({})".format(parser, ("forced-disabled", "ok")[ok]))
+				if ok:
+					self.parsermods.append(mod)
+			else:
+				if not self.quiet:
+					print("+ parser: {}".format(parser))
+				self.parsermods.append(mod)
 
 	def setupexecutors(self, executors):
 		if not self.quiet:
@@ -410,6 +415,8 @@ class Snafu:
 				handled = False
 				needshandling = False
 				for suffixkey, suffixvalues in parsermapping.items():
+					if type(suffixvalues) != list:
+						suffixvalues = [suffixvalues]
 					for suffixvalue in suffixvalues:
 						if source.endswith("." + suffixvalue):
 							needshandling = True

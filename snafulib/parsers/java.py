@@ -3,6 +3,12 @@
 import os
 import subprocess
 
+def precheck():
+	r = subprocess.run("java 2>/dev/null", shell=True)
+	if r.returncode == 127:
+		return False
+	return True
+
 def activatefile(self, source, convention, SnafuFunctionSource):
 	if not os.path.isfile("snafulib/executors/java/JavaExec.class"):
 		pwd = os.getcwd()
